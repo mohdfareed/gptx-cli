@@ -21,38 +21,36 @@ jobs:
     steps:
       # Report the workflow configuration
       - name: Report configuration
-        if: env.DRY_RUN == 'true'
         run: |
-          echo "Dry Run!" >> $GITHUB_STEP_SUMMARY
-          echo "Creating release version: ${{ env.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "::notice::Creating release version: ${{ github.ref_name }}"
+      - if: env.DRY_RUN == 'true'
+        run: echo "::warning::Dry Run!"
 
-      # 1) Setup Go for the build script
-      - name: Set up Go
-        uses: actions/setup-go@main
-
-      # 2) Clone the repository
+      # 1) Clone the repository
       - name: Checkout repository
         uses: actions/checkout@main
         with:
           fetch-depth: 0
 
-      # 3) Ensure your build script is runnable
-      - name: Ensure executable scripts
-        run: chmod +x scripts/*
+      # 2) Setup Go for the build script
+      - name: Set up Go
+        uses: actions/setup-go@main
 
-      # 4) Run the build script
+      # 3) Run the build script
       - name: Build executables
-        run: scripts/build.sh
+        run: |
+          chmod +x scripts/*
+          scripts/build.sh build/chat
 
-      # 5*) Dry run: upload artifacts instead of releasing
+      # 4*) Dry run: upload artifacts instead of releasing
       - name: Upload build artifacts (dry run)
         if: env.DRY_RUN == 'true'
         uses: actions/upload-artifact@main
         with:
           name: build-artifacts
-          path: .bin/*
+          path: build/*
 
-      # 5) Create a GitHub Release and upload files in .bin/
+      # 4) Create a GitHub Release and upload files in .bin/
       - name: Create GitHub Release
         if: env.DRY_RUN != 'true'
         id: create_release
@@ -60,11 +58,11 @@ jobs:
         with:
           files: .bin/*
           generate_release_notes: true
-          tag_name: ${{ env.tag }}
+          tag_name: ${{ github.ref_name }}
 
-      # 6) Create release summary
+      # 5) Create release summary
       - name: Create job summary
         if: env.DRY_RUN != 'true'
         run: |
-          echo "- Release: ${{ env.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Release: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- Link: ${{ steps.create_release.outputs.url }}" >> $GITHUB_STEP_SUMMARY
