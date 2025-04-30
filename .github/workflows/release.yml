@@ -19,10 +19,6 @@ jobs:
       DRY_RUN: ${{ github.event.inputs.dry_run }}
 
     steps:
-      # Report the workflow configuration
-      - name: Report configuration
-        run: |
-          echo "::notice::Creating release version: ${{ github.ref_name }}"
       - if: env.DRY_RUN == 'true'
         run: echo "::warning::Dry Run!"
 
@@ -50,19 +46,17 @@ jobs:
           name: build-artifacts
           path: build/*
 
-      # 4) Create a GitHub Release and upload files in .bin/
+      # 4) Create a GitHub Release and upload build files
       - name: Create GitHub Release
         if: env.DRY_RUN != 'true'
         id: create_release
         uses: softprops/action-gh-release@master
         with:
-          files: .bin/*
+          files: build/*
           generate_release_notes: true
           tag_name: ${{ github.ref_name }}
 
-      # 5) Create release summary
-      - name: Create job summary
-        if: env.DRY_RUN != 'true'
+      - if: env.DRY_RUN != 'true'
         run: |
           echo "- Release: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- Link: ${{ steps.create_release.outputs.url }}" >> $GITHUB_STEP_SUMMARY

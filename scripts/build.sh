@@ -1,9 +1,12 @@
 #!/bin/sh
 
 # USAGE:
-#    scripts/build.sh [output]
+#    scripts/build.sh [path]
 # ARGS:
-#    output - the output path (default: .bin/chat)
+#    path - the build output path (default: ./.bin/chat)
+
+usage="usage: $0 [path=.bin/chat]"
+if [ "$#" -gt 1 ]; then echo "$usage" && exit 1; fi
 
 app=./chat # the app source code
 exec="${1:-.bin/chat}" # the built executable path
@@ -13,10 +16,10 @@ platforms="darwin linux windows"
 architectures="arm64 amd64"
 
 # build the app for each plat/arch
-echo "Built executable: $exec"
+echo "built executable: $exec"
 for platform in $platforms; do
   for arch in $architectures; do
-    echo "Building for $platform-$arch..."
+    echo "building for $platform-$arch..."
     output="${exec}-${platform}-${arch}"
     GOOS=$platform GOARCH=$arch go build -o "$output" "$app"
   done

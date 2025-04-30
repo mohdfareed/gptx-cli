@@ -31,7 +31,7 @@ func ConfigCMD() (string, error) {
 		return "", err
 	}
 
-	return "Path: " + configPath + "\n" + fmt.Sprint(config), nil
+	return "path: " + configPath + "\n" + fmt.Sprint(config), nil
 }
 
 func CreateConfigCMD() (string, error) {
@@ -47,5 +47,5 @@ func CreateConfigCMD() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "Config written to: " + configPath, nil
+	return "config written to: " + configPath, nil
 }
