@@ -10,13 +10,11 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("error loading .env file")
-	}
+	// load .env and ignore errors
+	_ = godotenv.Load()
 
 	cmd := &cli.Command{
-		Name:     "chat",
+		Name:     "chatgpt",
 		Usage:    "chat with an OpenAI model",
 		Commands: commands(),
 	}

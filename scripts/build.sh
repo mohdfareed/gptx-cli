@@ -3,13 +3,13 @@
 # USAGE:
 #    scripts/build.sh [path]
 # ARGS:
-#    path - the build output path (default: ./.bin/chat)
+#    path - the build output path (default: ./.bin/chatgpt)
 
-usage="usage: $0 [path=.bin/chat]"
+usage="usage: $0 [path=.bin/chatgpt]"
 if [ "$#" -gt 1 ]; then echo "$usage" && exit 1; fi
 
-app=./chat # the app source code
-exec="${1:-.bin/chat}" # the built executable path
+app=./chatgpt # the app source code
+exec="${1:-.bin/chatgpt}" # the built executable path
 
 # the supported platforms and architectures
 platforms="darwin linux windows"
