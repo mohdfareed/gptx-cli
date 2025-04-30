@@ -1,26 +1,37 @@
 #!/bin/sh
 
-# USAGE:
-#    scripts/build.sh [path]
-# ARGS:
-#    path - the build output path (default: ./.bin/chatgpt)
+# help message
+USAGE="usage: $0 [path=.bin]"
+if [ "$#" -gt 1 ]; then echo "$USAGE" && exit 1; fi
 
-usage="usage: $0 [path=.bin/chatgpt]"
-if [ "$#" -gt 1 ]; then echo "$usage" && exit 1; fi
+# arguments
+APP=./chatgpt # the app source code
+BIN="${1:-.bin}" # the binaries path
+exec=$(basename "$APP") # the executable
+out="$BIN/$exec" # the output path
 
-app=./chatgpt # the app source code
-exec="${1:-.bin/chatgpt}" # the built executable path
+# build for a plat-arch and package it
+build() { # usage: build <plat> <arch> <id>
+  plat="$1"; arch="$2"; id="$3"
 
-# the supported platforms and architectures
-platforms="darwin linux windows"
-architectures="arm64 amd64"
+  # build the executable
+  echo "building for $id..."
+  GOOS=$plat GOARCH=$arch go build -o "$out" "$APP"
 
-# build the app for each plat/arch
-echo "built executable: $exec"
-for platform in $platforms; do
-  for arch in $architectures; do
-    echo "building for $platform-$arch..."
-    output="${exec}-${platform}-${arch}"
-    GOOS=$platform GOARCH=$arch go build -o "$output" "$app"
-  done
-done
+  # package into an archive
+  archive="$out-$id.zip"
+  zip -j "$archive" "$out" > /dev/null
+}
+
+# linux
+build linux arm64 "linux-arm"
+build linux amd64 "linux-x64"
+# macos
+build darwin arm64 "macos-arm"
+build darwin amd64 "macos-x64"
+# windows
+build windows arm64 "win-arm"
+build windows amd64 "win-x64"
+
+# cleanup
+rm "$out"

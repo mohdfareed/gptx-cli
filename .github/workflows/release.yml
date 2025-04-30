@@ -38,7 +38,7 @@ jobs:
           chmod +x scripts/*
           scripts/build.sh build/chatgpt
 
-      # 4*) Dry run: upload artifacts instead of releasing
+      # 4) Dry run: upload artifacts instead of releasing
       - name: Upload build artifacts (dry run)
         if: env.DRY_RUN == 'true'
         uses: actions/upload-artifact@main
@@ -55,8 +55,3 @@ jobs:
           files: build/*
           generate_release_notes: true
           tag_name: ${{ github.ref_name }}
-
-      - if: env.DRY_RUN != 'true'
-        run: |
-          echo "- Release: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Link: ${{ steps.create_release.outputs.url }}" >> $GITHUB_STEP_SUMMARY
