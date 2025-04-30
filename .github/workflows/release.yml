@@ -36,7 +36,7 @@ jobs:
       - name: Build executables
         run: |
           chmod +x scripts/*
-          scripts/build.sh build/chat
+          scripts/build.sh build/chatgpt
 
       # 4*) Dry run: upload artifacts instead of releasing
       - name: Upload build artifacts (dry run)
