@@ -1,0 +1,62 @@
+name: 📦 Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'If true, upload artifacts instead of creating a release'
+        required: false
+        default: 'false'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      DRY_RUN: ${{ github.event.inputs.dry_run }}
+
+    steps:
+      # 1) Grab your code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # 2) Setup Go for build script
+      - name: Set up Go
+        uses: actions/setup-go@v5
+
+      # 3) Ensure your build script is runnable
+      - name: Make build script executable
+        run: chmod +x scripts/build.sh
+
+      # 4) Run your build (output goes into .bin/)
+      - name: Build executables
+        run: scripts/build.sh
+
+      # 5*) Dry run: upload artifacts instead of releasing
+      - name: Upload build artifacts (dry run)
+        if: env.DRY_RUN == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: .bin/*
+
+      # 5) Create a GitHub Release and upload every file in .bin/
+      - name: Create GitHub Release
+        if: env.DRY_RUN != 'true'
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: .bin/*
+          generate_release_notes: true
+          tag_name: ${{ env.tag }}
+
+      # 6) Create summary
+      - name: Create job summary
+        if: env.DRY_RUN != 'true'
+        run: |
+          echo "- Release: ${{ env.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Link: ${{ steps.create_release.outputs.url }}" >> $GITHUB_STEP_SUMMARY
