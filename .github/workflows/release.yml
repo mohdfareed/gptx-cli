@@ -7,9 +7,10 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'If true, upload artifacts instead of creating a release'
+        type: boolean
+        description: 'Upload artifacts instead of creating a release'
         required: false
-        default: 'false'
+        default: false
 
 jobs:
   release:
@@ -18,43 +19,50 @@ jobs:
       DRY_RUN: ${{ github.event.inputs.dry_run }}
 
     steps:
-      # 1) Grab your code
+      # Report the workflow configuration
+      - name: Report configuration
+        if: env.DRY_RUN == 'true'
+        run: |
+          echo "Dry Run!" >> $GITHUB_STEP_SUMMARY
+          echo "Creating release version: ${{ env.tag }}" >> $GITHUB_STEP_SUMMARY
+
+      # 1) Setup Go for the build script
+      - name: Set up Go
+        uses: actions/setup-go@main
+
+      # 2) Clone the repository
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@main
         with:
           fetch-depth: 0
 
-      # 2) Setup Go for build script
-      - name: Set up Go
-        uses: actions/setup-go@v5
-
       # 3) Ensure your build script is runnable
-      - name: Make build script executable
-        run: chmod +x scripts/build.sh
+      - name: Ensure executable scripts
+        run: chmod +x scripts/*
 
-      # 4) Run your build (output goes into .bin/)
+      # 4) Run the build script
       - name: Build executables
         run: scripts/build.sh
 
       # 5*) Dry run: upload artifacts instead of releasing
       - name: Upload build artifacts (dry run)
         if: env.DRY_RUN == 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@main
         with:
           name: build-artifacts
           path: .bin/*
 
-      # 5) Create a GitHub Release and upload every file in .bin/
+      # 5) Create a GitHub Release and upload files in .bin/
       - name: Create GitHub Release
         if: env.DRY_RUN != 'true'
         id: create_release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@master
         with:
           files: .bin/*
           generate_release_notes: true
           tag_name: ${{ env.tag }}
 
-      # 6) Create summary
+      # 6) Create release summary
       - name: Create job summary
         if: env.DRY_RUN != 'true'
         run: |
