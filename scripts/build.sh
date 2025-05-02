@@ -6,7 +6,7 @@
 USAGE="usage: $0 [path=.bin]"
 if [ "$#" -gt 1 ]; then echo "$USAGE" && exit 1; fi
 
-APP=./chatgpt # the app source code
+APP=./gptx # the app source code
 BIN="${1:-.bin}" # the binaries path
 
 exec=$(basename "$APP") # the executable

@@ -1,4 +1,4 @@
 #!/usr/bin/env zsh
 
-APP=./chatgpt
+APP=./gptx
 go run $APP $@
