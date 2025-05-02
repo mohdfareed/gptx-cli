@@ -13,6 +13,11 @@ import (
 	"github.com/knadh/koanf/v2"
 )
 
+// The default system prompt.
+const DefaultSysPrompt string = "You are '" + AppName + "', " + `a CLI tool.
+Only respond how a CLI tool would output. Do not include any additional text.
+`
+
 // serialize the config
 func Serialize(model any) (string, error) {
 	parser := koanf.New(".")
@@ -52,8 +57,7 @@ func createParser() (*koanf.Koanf, error) {
 	// set defaults
 	parser.Set("api_key", os.Getenv("OPENAI_API_KEY"))
 	parser.Set("model", "gpt-4o-mini")
-	// parser.Set("prompt", strings.Trim(DefaultSysPrompt, "\n"))
-	parser.Set("prompt", strings.Trim("", "\n"))
+	parser.Set("prompt", strings.Trim(DefaultSysPrompt, "\n"))
 
 	// load config files
 	var files []string = configFIles()

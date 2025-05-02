@@ -4,7 +4,7 @@
 
 # help message
 USAGE="usage: $0 [path=.bin]"
-if [ "$#" -gt 1 ]; then echo "$USAGE" && exit 1; fi
+if [ "$#" -gt 1 ]; then echo "$USAGE" && exit 1; fi # don't bother reading
 
 APP=./gptx # the app source code
 BIN="${1:-.bin}" # the binaries path

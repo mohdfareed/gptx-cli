@@ -10,11 +10,6 @@ import (
 // MARK: Definitions
 // ============================================================================
 
-// // The default system prompt.
-// const DefaultSysPrompt string = "You are '" + AppName + "', " + `a CLI tool.
-// Only respond how a CLI tool would output. Do not include any additional text.
-// `
-
 // The OpenAI client.
 type Model struct {
 	cli    *openai.Client
