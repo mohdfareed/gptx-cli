@@ -53,6 +53,11 @@ func printConfig(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	println(Serialize(config))
+
+	configStr, err := Serialize(config)
+	if err != nil {
+		return err
+	}
+	println(configStr)
 	return nil
 }

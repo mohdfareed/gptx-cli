@@ -2,23 +2,21 @@ module github.com/mohdfareed/chatgpt-cli
 
 go 1.23.8
 
-require (
+require ( // MARK: Dependencies
 	github.com/joho/godotenv v1.5.1
+	github.com/knadh/koanf/v2 v2.2.0
 	github.com/openai/openai-go v0.1.0-beta.10
 	github.com/urfave/cli/v3 v3.3.2
 )
 
-// configuration framework
-require (
+require ( // MARK: Configuration
 	github.com/knadh/koanf/parsers/dotenv v1.1.0
 	github.com/knadh/koanf/providers/env v1.1.0
 	github.com/knadh/koanf/providers/file v1.2.0
 	github.com/knadh/koanf/providers/structs v1.0.0
-	github.com/knadh/koanf/v2 v2.2.0
 )
 
-// transitive dependencies
-require (
+require ( // MARK: Transitive
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect

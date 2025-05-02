@@ -10,10 +10,10 @@ import (
 // MARK: Definitions
 // ============================================================================
 
-// The default system prompt.
-const DefaultSysPrompt string = "You are '" + AppName + "', " + `a CLI tool.
-Only respond how a CLI tool would output. Do not include any additional text.
-`
+// // The default system prompt.
+// const DefaultSysPrompt string = "You are '" + AppName + "', " + `a CLI tool.
+// Only respond how a CLI tool would output. Do not include any additional text.
+// `
 
 // The OpenAI client.
 type Model struct {
@@ -37,7 +37,7 @@ type ModelConfig struct {
 	Stream bool `koanf:"stream"`
 }
 
-// MARK: Chat Model
+// MARK: Interfaces
 // ============================================================================
 
 // Message an OpenAI model and return the response.
@@ -69,24 +69,4 @@ func (m *Model) Send(message string) error {
 		return m.stream(message)
 	}
 	return m.generate(message)
-}
-
-// MARK: Configuration
-// ============================================================================
-
-// Load the model's configuration in the following order:
-// Defaults, XDG, parents, cwd, env vars, .env file.
-func LoadConfig() (*ModelConfig, error) {
-	// create config parser
-	parser, err := createParser()
-	if err != nil {
-		return nil, fmt.Errorf("config loader: %w", err)
-	}
-
-	// deserialize the config
-	var config ModelConfig
-	if err := parser.Unmarshal("", &config); err != nil {
-		return nil, fmt.Errorf("config deserialization: %w", err)
-	}
-	return &config, nil
 }

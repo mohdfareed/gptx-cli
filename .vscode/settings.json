@@ -1,4 +1,12 @@
 {
+  "cSpell.ignorePaths": [
+    ".devcontainer",
+    ".github",
+    ".vscode",
+    ".gitignore",
+    "go.mod",
+    "go.sum",
+  ],
   "cSpell.words": [
     "devcontainers",
     "dotenv",

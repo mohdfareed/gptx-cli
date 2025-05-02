@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,10 +14,34 @@ import (
 )
 
 // serialize the config
-func Serialize(model any) string {
+func Serialize(model any) (string, error) {
 	parser := koanf.New(".")
-	parser.Load(structs.Provider(model, "koanf"), nil)
-	return parser.Sprint()
+	_ = parser.Load(structs.Provider(model, "koanf"), nil)
+
+	data, err := dotenv.Parser().Marshal(parser.All())
+	if err != nil {
+		return "", fmt.Errorf("config serialization: %w", err)
+	}
+
+	str := strings.ReplaceAll(string(data), "\\n", "\n")
+	return str, nil
+}
+
+// Load the model's configuration in the following order:
+// Defaults, XDG, parents, cwd, env vars, .env file.
+func LoadConfig() (*ModelConfig, error) {
+	// create config parser
+	parser, err := createParser()
+	if err != nil {
+		return nil, fmt.Errorf("config loader: %w", err)
+	}
+
+	// deserialize the config
+	var config ModelConfig
+	if err := parser.Unmarshal("", &config); err != nil {
+		return nil, fmt.Errorf("config deserialization: %w", err)
+	}
+	return &config, nil
 }
 
 // create a config parser with the following order:
@@ -27,7 +52,8 @@ func createParser() (*koanf.Koanf, error) {
 	// set defaults
 	parser.Set("api_key", os.Getenv("OPENAI_API_KEY"))
 	parser.Set("model", "gpt-4o-mini")
-	parser.Set("prompt", strings.Trim(DefaultSysPrompt, "\n"))
+	// parser.Set("prompt", strings.Trim(DefaultSysPrompt, "\n"))
+	parser.Set("prompt", strings.Trim("", "\n"))
 
 	// load config files
 	var files []string = configFIles()
@@ -55,7 +81,7 @@ func createParser() (*koanf.Koanf, error) {
 func configFIles() []string {
 	var files []string
 	for dir, _ := os.Getwd(); ; dir = filepath.Dir(dir) {
-		f := filepath.Join(dir, ".gptx")
+		f := filepath.Join(dir, "."+AppName)
 
 		if _, err := os.Stat(f); err == nil {
 			files = append(files, f)

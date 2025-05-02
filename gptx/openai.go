@@ -6,6 +6,7 @@ import (
 
 	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/responses"
+	"github.com/openai/openai-go/shared"
 )
 
 // stream a response from the model.
@@ -15,16 +16,18 @@ func (m *Model) stream(message string) error {
 	stream := m.cli.Responses.NewStreaming(context.Background(), request)
 	defer stream.Close()
 
-	for { // stream the response
-		for stream.Next() {
-			data := stream.Current()
-			println(parseStream(data))
-		}
-
-		if err := stream.Err(); err != nil {
-			return fmt.Errorf("stream error: %w", err)
-		}
+	// stream the response
+	for stream.Next() {
+		data := stream.Current()
+		print(parseStream(data))
 	}
+
+	if err := stream.Err(); err != nil {
+		return fmt.Errorf("stream error: %w", err)
+	}
+
+	println()
+	return nil
 }
 
 // generate a response from the model.
@@ -52,21 +55,43 @@ func parse(response *responses.Response) string {
 // ============================================================================
 
 func (m *Model) createRequest(message string) responses.ResponseNewParams {
-	prompt := param.Opt[string]{Value: message}
 	params := responses.ResponseNewParams{
-		Input:        responses.ResponseNewParamsInputUnion{OfString: prompt},
 		Model:        m.config.Model,
 		Instructions: param.Opt[string]{Value: m.config.SysPrompt},
-		// Include: []responses.ResponseIncludable{
-		// 	responses.ResponseIncludableComputerCallOutputOutputImageURL,
-		// 	responses.ResponseIncludableFileSearchCallResults,
-		// 	responses.ResponseIncludableMessageInputImageImageURL,
-		// },
-		// Reasoning: shared.ReasoningParam{
-		// 	Effort:          shared.ReasoningEffortLow,
-		// 	GenerateSummary: shared.ReasoningGenerateSummaryDetailed,
-		// },
+		Include: []responses.ResponseIncludable{
+			responses.ResponseIncludableMessageInputImageImageURL,
+		},
 	}
-	// TODO: add attachments, tools, max tokens?, temp?, parallel calls?
+
+	params.Tools = []responses.ToolUnionParam{
+		responses.ToolParamOfWebSearch(
+			responses.WebSearchToolTypeWebSearchPreview,
+		),
+	}
+
+	if m.config.Model[0] == 'o' {
+		params.Reasoning = shared.ReasoningParam{
+			Effort:          shared.ReasoningEffortMedium,
+			GenerateSummary: shared.ReasoningGenerateSummaryDetailed,
+		}
+	}
+
+	params.Input.OfInputItemList = []responses.ResponseInputItemUnionParam{
+		{
+			OfInputMessage: &responses.ResponseInputItemMessageParam{
+				Role: string(responses.ResponseInputMessageItemRoleUser),
+				Content: responses.ResponseInputMessageContentListParam{
+					{
+						OfInputText: &responses.ResponseInputTextParam{
+							Text: message,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// TODO: add attachments, custom tools (shell)
+	// TODO: configs: max tokens?, temp?, parallel calls?
 	return params
 }
