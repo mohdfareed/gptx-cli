@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env bash
+shopt -s extglob
 
 # MARK: Arguments =============================================================
 
@@ -6,31 +7,22 @@
 USAGE="usage: $0 [path=.bin]"
 if [ "$#" -gt 1 ]; then echo "$USAGE" && exit 1; fi # don't bother reading
 
-APP=./gptx # the app source code
+APP=$(realpath ./gptx) # the app source code
 BIN="${1:-.bin}" # the binaries path
-
-exec=$(basename "$APP") # the executable
-out="$BIN/$exec" # the output path
+mkdir -p "$BIN" # create the binaries path
 
 # MARK: Build =================================================================
 
 # build for a plat-arch and package it
 build() { # usage: build <plat> <arch> <id>
-  plat="$1"; arch="$2"; id="$3"
-  output="$out"
+  plat="$1"; arch="$2"; id="$3";
+  archive=$BIN/$(basename "$APP")-$id.zip # the archive name
 
-  # add .exe for windows
-  if [ "$plat" = "windows" ]; then
-    output="$output.exe"
-  fi
-
-  # build the executable
-  echo "building for $id..."
-  GOOS=$plat GOARCH=$arch go build -o "$output" "$APP"
-
-  # package into an archive
-  archive="$out-$id.zip"
-  zip -j "$archive" "$output" > /dev/null
+  # build and package
+  echo "building for $plat $arch..."
+  GOOS=$plat GOARCH=$arch go build -C "$BIN" "$APP"
+  zip -jm "$archive" "$BIN"/!(*.zip) > /dev/null # zip the binaries
+  echo "  packaged: $archive"
 }
 
 # MARK: Targets ===============================================================
@@ -49,12 +41,7 @@ build windows amd64 "win-x64"
 
 # development
 echo "building for debug..."
-if [ "$(go env GOOS)" = "windows" ]; then
-  go build -tags=debug -o "$out.exe" "$APP"
-  rm "$out"
-else # macos | linux
-  go build -tags=debug -o "$out" "$APP"
-  rm "$out.exe"
-fi
+go build -C "$BIN" -tags=debug "$APP"
+echo "  run $BIN/gptx --help for usage"
 
-echo "builds created in $BIN"
+shopt -u extglob

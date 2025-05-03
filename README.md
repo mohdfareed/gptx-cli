@@ -12,6 +12,7 @@ It allows you to interact with any GPT model directly from the terminal.
 
 ## TODO
 
+- Remove `koanf` dependency
 - Add chat command
     - Subcommands:
         - Set session history file (default to temporary file)

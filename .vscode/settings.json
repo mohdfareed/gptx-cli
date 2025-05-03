@@ -10,6 +10,7 @@
   "cSpell.words": [
     "devcontainers",
     "dotenv",
+    "extglob",
     "GOARCH",
     "godotenv",
     "gomod",
