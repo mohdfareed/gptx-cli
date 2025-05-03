@@ -17,20 +17,18 @@ func main() {
 	// load .env file
 	_ = godotenv.Load()
 
-	var msgPrompt []string
 	cmd := &cli.Command{
 		Name:  "gptx",
 		Usage: "message an OpenAI model",
-		Arguments: []cli.Argument{
-			&cli.StringArgs{
-				Name:        "msg",
-				UsageText:   "the message prompt",
-				Destination: &msgPrompt,
-				Max:         -1,
-			},
-		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			return MessageModel(strings.Join(msgPrompt, " "))
+			prompt, err := Editor("")
+			if err != nil {
+				prompt, err = Terminal()
+				if err != nil {
+					return err
+				}
+			}
+			return MessageModel(strings.Trim(prompt, "\n"))
 		},
 
 		Commands: []*cli.Command{
