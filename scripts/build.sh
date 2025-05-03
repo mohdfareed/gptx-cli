@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
-shopt -s extglob
 
-# MARK: Arguments =============================================================
+# MARK: Init ==================================================================
 
-# help message
-USAGE="usage: $0 [path=.bin]"
+# help
+USAGE="usage: $0 [output=.bin]"
 if [ "$#" -gt 1 ]; then echo "$USAGE" && exit 1; fi # don't bother reading
 
-APP=$(realpath ./gptx) # the app source code
+# args
+APP=$(realpath ./gptx) # the app source
 BIN="${1:-.bin}" # the binaries path
-mkdir -p "$BIN" # create the binaries path
+
+# setup
+go build -o "$BIN/_" "$APP" # download deps
+rm -rf "$BIN" && mkdir -p "$BIN" # clear bin
 
 # MARK: Build =================================================================
 
@@ -21,8 +24,8 @@ build() { # usage: build <plat> <arch> <id>
   # build and package
   echo "building for $plat $arch..."
   GOOS=$plat GOARCH=$arch go build -C "$BIN" "$APP"
-  zip -jm "$archive" "$BIN"/!(*.zip) > /dev/null # zip the binaries
-  echo "  packaged: $archive"
+  zip -jm "$archive" "$BIN"/* -x '*.zip' > /dev/null
+  echo "-> packaged: $archive"
 }
 
 # MARK: Targets ===============================================================
@@ -40,8 +43,6 @@ build windows arm64 "win-arm"
 build windows amd64 "win-x64"
 
 # development
-echo "building for debug..."
+echo "building for dev (debug)..."
 go build -C "$BIN" -tags=debug "$APP"
-echo "  run $BIN/gptx --help for usage"
-
-shopt -u extglob
+echo "-> debug at: $BIN/$(basename "$APP")"

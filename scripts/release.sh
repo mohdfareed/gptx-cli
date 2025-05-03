@@ -1,7 +1,7 @@
 #!/bin/sh
 
 USAGE="usage: $0 version
-The version is the tag name to be created, e.g. v1.0.0"
+  The version is the tag name to be created, e.g. v1.0.0"
 if [ "$#" -ne 1 ]; then echo "$USAGE" && exit 1; fi
 
 echo "creating release: $1"
