@@ -9,6 +9,8 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
+// TODO: refactor
+
 // stream a response from the model.
 func (m *Model) stream(message string) error {
 	// generate stream request
@@ -27,7 +29,7 @@ func (m *Model) stream(message string) error {
 	}
 
 	println()
-	return nil
+	return nil // TODO: return aggregated response to store
 }
 
 // generate a response from the model.
@@ -35,7 +37,7 @@ func (m *Model) generate(message string) error {
 	request := m.createRequest(message)
 	response, err := m.cli.Responses.New(context.Background(), request)
 	println(parse(response))
-	return err
+	return err // TODO: return aggregated response to store
 }
 
 // MARK: Response

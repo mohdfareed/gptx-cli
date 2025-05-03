@@ -3,13 +3,37 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
-	"strings"
 )
 
-func Editor(prompt string) (string, error) {
+func Prompt(prompt string, editor string) (string, error) {
+	if editor == "" {
+		prompt, err := terminalPrompt()
+		if err != nil {
+			return "", err
+		}
+		return prompt, nil
+	}
+
+	prompt, err := editorPrompt(prompt, editor)
+	if err != nil {
+		return "", err
+	}
+	return prompt, nil
+}
+
+func terminalPrompt() (string, error) {
+	fmt.Print("Prompt: ")
+	reader := bufio.NewReader(os.Stdin)
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		return "", fmt.Errorf("reading input: %w", err)
+	}
+	return line, nil
+}
+
+func editorPrompt(prompt string, editor string) (string, error) {
 	// create a temp file
 	tmpDir := os.TempDir()
 	tmp, err := os.CreateTemp(tmpDir, "chat-input-*.md")
@@ -25,7 +49,6 @@ func Editor(prompt string) (string, error) {
 	tmp.Close()
 
 	// launch editor
-	editor := os.Getenv("EDITOR")
 	cmd := exec.Command(editor, tmp.Name())
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -40,22 +63,4 @@ func Editor(prompt string) (string, error) {
 		return "", fmt.Errorf("reading temp file: %w", err)
 	}
 	return string(raw), nil
-}
-
-func Terminal() (string, error) {
-	println("press ctrl-D to submit")
-	reader := bufio.NewReader(os.Stdin)
-	var sb strings.Builder
-
-	for {
-		line, err := reader.ReadString('\n')
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return "", fmt.Errorf("reading input: %w", err)
-		}
-		sb.WriteString(line)
-	}
-	return sb.String(), nil
 }

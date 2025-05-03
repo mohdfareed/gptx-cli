@@ -18,6 +18,24 @@ const DefaultSysPrompt string = "You are '" + AppName + "', " + `a CLI tool.
 Only respond how a CLI tool would output. Do not include any additional text.
 `
 
+// The model's configuration.
+type ModelConfig struct {
+	// The OpenAI API key.
+	APIKey string `koanf:"api_key"`
+	// The OpenAI model to use.
+	Model string `koanf:"model"`
+	// The system prompts to use. Combined with other sys prompts.
+	SysPrompt string `koanf:"prompt"`
+	// The paths to the files to attach to the message.
+	Files []string `koanf:"files"`
+	// The chat history path.
+	Chat string `koanf:"chat"`
+	// Whether to stream the response.
+	Stream bool `koanf:"stream"`
+	// The prompt editor.
+	Editor string `koanf:"editor"`
+}
+
 // serialize the config
 func Serialize(model any) (string, error) {
 	parser := koanf.New(".")
@@ -34,19 +52,19 @@ func Serialize(model any) (string, error) {
 
 // Load the model's configuration in the following order:
 // Defaults, XDG, parents, cwd, env vars, .env file.
-func LoadConfig() (*ModelConfig, error) {
+func LoadConfig() (ModelConfig, error) {
 	// create config parser
 	parser, err := createParser()
 	if err != nil {
-		return nil, fmt.Errorf("config loader: %w", err)
+		return ModelConfig{}, fmt.Errorf("config loader: %w", err)
 	}
 
 	// deserialize the config
 	var config ModelConfig
 	if err := parser.Unmarshal("", &config); err != nil {
-		return nil, fmt.Errorf("config deserialization: %w", err)
+		return ModelConfig{}, fmt.Errorf("config deserialization: %w", err)
 	}
-	return &config, nil
+	return config, nil
 }
 
 // create a config parser with the following order:

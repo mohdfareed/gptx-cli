@@ -17,18 +17,21 @@ func main() {
 	// load .env file
 	_ = godotenv.Load()
 
+	// load the config
+	config, err := LoadConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	// create the model
+	model := CreateModel(config)
+
+	// create the app
 	cmd := &cli.Command{
 		Name:  "gptx",
 		Usage: "message an OpenAI model",
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			prompt, err := Editor("")
-			if err != nil {
-				prompt, err = Terminal()
-				if err != nil {
-					return err
-				}
-			}
-			return MessageModel(strings.Trim(prompt, "\n"))
+			return msgModel(model)
 		},
 
 		Commands: []*cli.Command{
@@ -36,9 +39,12 @@ func main() {
 				Name:      "config",
 				Usage:     "show the app's config",
 				Arguments: []cli.Argument{},
-				Action:    printConfig,
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					return printConfig(config)
+				},
 			},
 		},
+		EnableShellCompletion: true,
 	}
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
@@ -46,12 +52,15 @@ func main() {
 	}
 }
 
-func printConfig(ctx context.Context, cmd *cli.Command) error {
-	config, err := LoadConfig()
+func msgModel(model *Model) error {
+	prompt, err := Prompt("", model.config.Editor)
 	if err != nil {
 		return err
 	}
+	return model.Prompt(strings.Trim(prompt, "\n"))
+}
 
+func printConfig(config ModelConfig) error {
 	configStr, err := Serialize(config)
 	if err != nil {
 		return err

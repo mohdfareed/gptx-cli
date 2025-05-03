@@ -13,13 +13,6 @@ It allows you to interact with any GPT model directly from the terminal.
 ## TODO
 
 - Remove `koanf` dependency
-- Add chat command
-    - Subcommands:
-        - Set session history file (default to temporary file)
-        - Print session file path, contents, stats
-    - Each chat is a json file
-- Add msg command
-    - Prompts the user for a message, allowing for multiline input
-    - Flags for config options
+- Integrate history into model
 - Support custom model tools
     - Shell commands

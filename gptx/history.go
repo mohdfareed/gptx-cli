@@ -19,6 +19,9 @@ type History struct {
 	Size     int       `json:"size"`
 }
 
+// MARK: History
+// ============================================================================
+
 // Create an empty chat History.
 func NewChat() *History {
 	return &History{Messages: []Message{}}
@@ -40,6 +43,9 @@ func (h *History) Last(n int) []Message {
 	}
 	return h.Messages[total-n:]
 }
+
+// MARK: File I/O
+// ============================================================================
 
 // Loads history from the given JSON file.
 func (h *History) Load(path string) error {
