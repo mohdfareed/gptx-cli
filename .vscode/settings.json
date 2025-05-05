@@ -1,4 +1,5 @@
 {
+  "go.buildTags": "dev",
   "cSpell.ignorePaths": [
     ".devcontainer",
     ".github",

@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-go run -tags debug ./gptx $@
+go run -tags dev ./gptx $@

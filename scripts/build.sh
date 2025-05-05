@@ -43,6 +43,6 @@ build windows arm64 "win-arm"
 build windows amd64 "win-x64"
 
 # development
-echo "building for dev (debug)..."
-go build -C "$BIN" -tags=debug "$APP"
-echo "-> debug at: $BIN/$(basename "$APP")"
+echo "building for development..."
+go build -C "$BIN" -tags=dev "$APP"
+echo "-> dev pkg at: $BIN/$(basename "$APP")"
