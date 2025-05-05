@@ -7,7 +7,7 @@ on:
 
   workflow_dispatch:
     inputs:
-      dry_run:
+      debug:
         type: boolean
         description: "Upload artifacts without a release."
         required: false
@@ -17,11 +17,11 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      DRY_RUN: ${{ github.event.inputs.dry_run }}
+      DEBUG: ${{ github.event.inputs.debug }}
 
     steps:
-      - if: env.DRY_RUN == "true"
-        run: echo "::warning::Dry Run!"
+      - if: env.DEBUG == "true"
+        run: echo "::warning::Debug mode is enabled."
 
       # 1) Clone the repository
       - name: Checkout repository
@@ -39,17 +39,17 @@ jobs:
           chmod +x scripts/*
           scripts/build.sh bin
 
-      # 4) Dry run: upload artifacts instead of releasing
+      # 4) Debug: upload build files as artifacts
       - name: Upload build artifacts (dry run)
-        if: env.DRY_RUN == "true" # for debugging only
+        if: env.DEBUG == "true" # for debugging only
         uses: actions/upload-artifact@main
         with:
           name: build-artifacts
           path: bin/*
 
-      # 4) Create a GitHub Release and upload build files
+      # 4) Release: create a release with build files
       - name: Create GitHub Release
-        if: env.DRY_RUN != "true"
+        if: env.DEBUG != "true"
         uses: softprops/action-gh-release@master
         with:
           tag_name: ${{ github.ref_name }}

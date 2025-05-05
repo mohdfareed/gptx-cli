@@ -1,0 +1,70 @@
+#!/usr/bin/env pwsh
+<# .SYNOPSIS #>
+Param(
+  [string]$Output = ".bin",
+  [switch]$Help
+)
+$ErrorActionPreference = "Stop"
+
+# MARK: Init ==================================================================
+
+# Help
+if ($Help) {
+  Write-Host "Usage: Build.ps1 [Output <path=.bin>]"
+  exit 0
+}
+
+# Arguments
+$AppPath = Join-Path -Path $PWD -ChildPath "gptx"
+New-Item -ItemType Directory -Path $Output -ErrorAction SilentlyContinue | Out-Null
+$BinPath = Resolve-Path -Path $Output
+
+# Store current environment
+$DevOS = $env:GOOS
+$DevArch = $env:GOARCH
+
+# Download dependencies and clean bin
+go build -o "$BinPath/_" "$AppPath"
+Remove-Item -Path $BinPath -Recurse -Force
+New-Item -ItemType Directory -Path $Output | Out-Null
+
+# MARK: Build =================================================================
+
+function Build-Binary {
+  [CmdletBinding()]
+  Param(
+    [Parameter(Mandatory = $true)][string]$Platform,
+    [Parameter(Mandatory = $true)][string]$Architecture,
+    [Parameter(Mandatory = $true)][string]$Id
+  )
+
+  $ExeName = Split-Path -Leaf $AppPath
+  $OutputExe = Join-Path -Path $Output -ChildPath $ExeName
+  $ArchiveName = "$ExeName-$Id.zip"
+  $ArchivePath = Join-Path -Path $Output -ChildPath $ArchiveName
+
+  Write-Host "Building for $Platform $Architecture..."
+  $env:GOOS = $Platform
+  $env:GOARCH = $Architecture
+
+  go build -o $OutputExe $AppPath
+  Compress-Archive -Path $OutputExe -DestinationPath $ArchivePath -Force
+  Write-Host "-> Packaged: $ArchivePath"
+}
+
+# MARK: Targets ===============================================================
+
+# Release builds
+Build-Binary -Platform 'linux'   -Architecture 'arm64' -Id 'linux-arm'
+Build-Binary -Platform 'linux'   -Architecture 'amd64' -Id 'linux-x64'
+Build-Binary -Platform 'darwin'  -Architecture 'arm64' -Id 'macos-arm'
+Build-Binary -Platform 'darwin'  -Architecture 'amd64' -Id 'macos-x64'
+Build-Binary -Platform 'windows' -Architecture 'arm64' -Id 'win-arm'
+Build-Binary -Platform 'windows' -Architecture 'amd64' -Id 'win-x64'
+
+# Development build
+Write-Host "Building for development..."
+$env:GOOS = $DevOS
+$env:GOARCH = $DevArch
+go build -C $BinPath -tags=dev $AppPath
+Write-Host "-> Dev pkg at: $BinPath/$(Split-Path -Leaf $AppPath)"
