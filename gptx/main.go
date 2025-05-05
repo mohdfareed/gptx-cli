@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
-	"strings"
 
-	"github.com/joho/godotenv"
 	"github.com/urfave/cli/v3"
 )
 
@@ -14,57 +11,35 @@ import (
 const AppName string = "gptx"
 
 func main() {
-	// load .env file
-	_ = godotenv.Load()
-
-	// load the config
+	// load config
 	config, err := LoadConfig()
 	if err != nil {
-		panic(err)
+		exit(err)
 	}
 
-	// create the model
-	model := CreateModel(config)
-
-	// create the app
-	cmd := &cli.Command{
-		Name:  "gptx",
-		Usage: "message an OpenAI model",
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			return msgModel(model)
+	// setup tools
+	tools := ModelTools{
+		config: config,
+		tools: map[ModelTool]Tool{
+			WebSearchTool.Name: WebSearchTool,
 		},
-
-		Commands: []*cli.Command{
-			{
-				Name:      "config",
-				Usage:     "show the app's config",
-				Arguments: []cli.Argument{},
-				Action: func(ctx context.Context, cmd *cli.Command) error {
-					return printConfig(config)
-				},
-			},
-		},
-		EnableShellCompletion: true,
 	}
 
+	// create model
+	model := CreateModel(config, tools)
+	cmd := MsgCMD(&model)
+	cmd.Commands = []*cli.Command{
+		ValidateCMD(&model),
+		ConfigCMD(config),
+		EditChatCMD(config),
+		ToolsCMD(tools),
+		UsageCMD(config),
+		DemoCMD(),
+	}
+	cmd.EnableShellCompletion = true
+
+	// run the app
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
-		log.Fatal(err)
+		exit(err)
 	}
-}
-
-func msgModel(model *Model) error {
-	prompt, err := Prompt("", model.config.Editor)
-	if err != nil {
-		return err
-	}
-	return model.Prompt(strings.Trim(prompt, "\n"))
-}
-
-func printConfig(config ModelConfig) error {
-	configStr, err := Serialize(config)
-	if err != nil {
-		return err
-	}
-	println(configStr)
-	return nil
 }

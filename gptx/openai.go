@@ -4,96 +4,69 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/responses"
-	"github.com/openai/openai-go/shared"
 )
 
-// TODO: refactor
+var WebSearchTool Tool = Tool{
+	Name: "web_search",
+	Desc: "search the web for information",
+	Def: responses.ToolParamOfWebSearch(
+		responses.WebSearchToolTypeWebSearchPreview,
+	), // REVIEW: check preview status
+	Init: func(config Config) error {
+		return nil
+	},
+}
 
-// stream a response from the model.
-func (m *Model) stream(message string) error {
-	// generate stream request
-	request := m.createRequest(message)
-	stream := m.cli.Responses.NewStreaming(context.Background(), request)
+// Generate a reply from the model.
+func (m *Model) Prompt(
+	msgs []Msg, tools []Tool, h func(string),
+) ([]Msg, error) {
+	request := newRequest(m.config, msgs, tools)
+	if m.config.Stream {
+		return m.stream(request, h)
+	} else {
+		return m.generate(request, h)
+	}
+}
+
+func (m *Model) generate(
+	r responses.ResponseNewParams, h func(string),
+) ([]Msg, error) {
+	response, err := m.cli.Responses.New(context.Background(), r)
+	if err != nil {
+		return nil, fmt.Errorf("openai: %w", err)
+	}
+	if string(response.Error.Code) != "" {
+		return nil, fmt.Errorf("openai: %s", response.Error.Message)
+	}
+	h(response.OutputText())
+	return parse(response)
+}
+
+func (m *Model) stream(
+	r responses.ResponseNewParams, h func(string),
+) ([]Msg, error) {
+	stream := m.cli.Responses.NewStreaming(context.Background(), r)
 	defer stream.Close()
 
 	// stream the response
+	var response responses.Response
 	for stream.Next() {
 		data := stream.Current()
-		print(parseStream(data))
+		if data.Response.Status == responses.ResponseStatusCompleted {
+			response = data.AsResponseCompleted().Response
+			break
+		}
+		h(parseStream(data))
 	}
+	println() // formatting
 
 	if err := stream.Err(); err != nil {
-		return fmt.Errorf("stream error: %w", err)
+		return nil, fmt.Errorf("openai: %w", err)
 	}
-
-	println()
-	return nil // TODO: return aggregated response to store
-}
-
-// generate a response from the model.
-func (m *Model) generate(message string) error {
-	request := m.createRequest(message)
-	response, err := m.cli.Responses.New(context.Background(), request)
-	println(parse(response))
-	return err // TODO: return aggregated response to store
-}
-
-// MARK: Response
-// ============================================================================
-
-func parseStream(response responses.ResponseStreamEventUnion) string {
-	// TODO: add support for other response data
-	return response.Delta
-}
-
-func parse(response *responses.Response) string {
-	// TODO: add support for other response data
-	return response.OutputText()
-}
-
-// MARK: Request
-// ============================================================================
-
-func (m *Model) createRequest(message string) responses.ResponseNewParams {
-	params := responses.ResponseNewParams{
-		Model:        m.config.Model,
-		Instructions: param.Opt[string]{Value: m.config.SysPrompt},
-		Include: []responses.ResponseIncludable{
-			responses.ResponseIncludableMessageInputImageImageURL,
-		},
+	if response.IncompleteDetails.Reason != "" {
+		return nil, fmt.Errorf("openai: %s", response.IncompleteDetails.Reason)
 	}
-
-	params.Tools = []responses.ToolUnionParam{
-		responses.ToolParamOfWebSearch(
-			responses.WebSearchToolTypeWebSearchPreview,
-		),
-	}
-
-	if m.config.Model[0] == 'o' {
-		params.Reasoning = shared.ReasoningParam{
-			Effort:          shared.ReasoningEffortMedium,
-			GenerateSummary: shared.ReasoningGenerateSummaryDetailed,
-		}
-	}
-
-	params.Input.OfInputItemList = []responses.ResponseInputItemUnionParam{
-		{
-			OfInputMessage: &responses.ResponseInputItemMessageParam{
-				Role: string(responses.ResponseInputMessageItemRoleUser),
-				Content: responses.ResponseInputMessageContentListParam{
-					{
-						OfInputText: &responses.ResponseInputTextParam{
-							Text: message,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// TODO: add attachments, custom tools (shell)
-	// TODO: configs: max tokens?, temp?, parallel calls?
-	return params
+	return parse(&response)
 }

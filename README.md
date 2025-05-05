@@ -12,7 +12,6 @@ It allows you to interact with any GPT model directly from the terminal.
 
 ## TODO
 
-- Remove `koanf` dependency
-- Integrate history into model
+- Refactor `gptx/config` (use `godotenv` only)
 - Support custom model tools
     - Shell commands

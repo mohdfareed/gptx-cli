@@ -5,35 +5,46 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
-func Prompt(prompt string, editor string) (string, error) {
-	if editor == "" {
-		prompt, err := terminalPrompt()
-		if err != nil {
-			return "", err
-		}
-		return prompt, nil
-	}
+// MARK: Prompt
+// ============================================================================
 
-	prompt, err := editorPrompt(prompt, editor)
+// PromptUser gets user message. Input is retrieved in the following order:
+// user input -> editor -> terminal
+func PromptUser(config Config, msgs []string) (string, error) {
+	var prompt string
+	var err error
+	if len(msgs) > 0 { // user input provided
+		prompt, err = strings.Join(msgs, " "), nil
+	} else if config.Editor != "" { // editor specified
+		prompt, err = editorPrompt(config.Editor)
+	} else {
+		prompt, err = terminalPrompt(config)
+	}
+	return strings.TrimSpace(prompt), err
+}
+
+// MARK: Terminal
+// ============================================================================
+
+func terminalPrompt(config Config) (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+	print(ModelPrefix(config.Model, config.Chat))
+
+	prompt, err := reader.ReadString('\n')
 	if err != nil {
-		return "", err
+		println("Error reading prompt:", err)
+		return prompt, err
 	}
 	return prompt, nil
 }
 
-func terminalPrompt() (string, error) {
-	fmt.Print("Prompt: ")
-	reader := bufio.NewReader(os.Stdin)
-	line, err := reader.ReadString('\n')
-	if err != nil {
-		return "", fmt.Errorf("reading input: %w", err)
-	}
-	return line, nil
-}
+// MARK: Editor
+// ============================================================================
 
-func editorPrompt(prompt string, editor string) (string, error) {
+func editorPrompt(editor string) (string, error) {
 	// create a temp file
 	tmpDir := os.TempDir()
 	tmp, err := os.CreateTemp(tmpDir, "chat-input-*.md")
@@ -41,12 +52,6 @@ func editorPrompt(prompt string, editor string) (string, error) {
 		return "", fmt.Errorf("creating temp file: %w", err)
 	}
 	defer os.Remove(tmp.Name())
-
-	// write prompt
-	if _, err := tmp.WriteString(prompt); err != nil {
-		return "", fmt.Errorf("writing initial prompt: %w", err)
-	}
-	tmp.Close()
 
 	// launch editor
 	cmd := exec.Command(editor, tmp.Name())
@@ -62,5 +67,5 @@ func editorPrompt(prompt string, editor string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("reading temp file: %w", err)
 	}
-	return string(raw), nil
+	return strings.TrimSpace(string(raw)), nil
 }

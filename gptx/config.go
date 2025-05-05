@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,84 +12,95 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/structs"
 	"github.com/knadh/koanf/v2"
+	"github.com/openai/openai-go/shared"
+	"github.com/urfave/cli/v3"
 )
+
+var AppConfigDir string = func() string {
+	if configDir, err := os.UserConfigDir(); err == nil {
+		return filepath.Join(configDir, AppName)
+	}
+	return "." + AppName
+}()
+
+const AppConfigFile string = "." + AppName + ".env"
 
 // The default system prompt.
 const DefaultSysPrompt string = "You are '" + AppName + "', " + `a CLI tool.
-Only respond how a CLI tool would output. Do not include any additional text.
+Respond as if you are an extension of the command line.
+Do not include any additional text.
 `
 
 // The model's configuration.
-type ModelConfig struct {
-	// The OpenAI API key.
-	APIKey string `koanf:"api_key"`
-	// The OpenAI model to use.
-	Model string `koanf:"model"`
-	// The system prompts to use. Combined with other sys prompts.
-	SysPrompt string `koanf:"prompt"`
-	// The paths to the files to attach to the message.
-	Files []string `koanf:"files"`
-	// The chat history path.
-	Chat string `koanf:"chat"`
-	// Whether to stream the response.
-	Stream bool `koanf:"stream"`
-	// The prompt editor.
-	Editor string `koanf:"editor"`
-}
-
-// serialize the config
-func Serialize(model any) (string, error) {
-	parser := koanf.New(".")
-	_ = parser.Load(structs.Provider(model, "koanf"), nil)
-
-	data, err := dotenv.Parser().Marshal(parser.All())
-	if err != nil {
-		return "", fmt.Errorf("config serialization: %w", err)
-	}
-
-	str := strings.ReplaceAll(string(data), "\\n", "\n")
-	return str, nil
+type Config struct {
+	APIKey       string                 `koanf:"api_key"`
+	Model        shared.ChatModel       `koanf:"model"`
+	SysPrompt    string                 `koanf:"prompt"`
+	ReasonEffort shared.ReasoningEffort `koanf:"reason"`
+	Tools        []ModelTool            `koanf:"tools"`
+	Files        []string               `koanf:"files"`
+	Chat         string                 `koanf:"chat"`
+	Temp         float64                `koanf:"temp"`
+	MaxTokens    int64                  `koanf:"max_tokens"`
+	Stream       bool                   `koanf:"stream"`
+	Editor       string                 `koanf:"editor"`
+	Color        bool                   `koanf:"color"`
 }
 
 // Load the model's configuration in the following order:
 // Defaults, XDG, parents, cwd, env vars, .env file.
-func LoadConfig() (ModelConfig, error) {
+func LoadConfig() (Config, error) {
 	// create config parser
 	parser, err := createParser()
 	if err != nil {
-		return ModelConfig{}, fmt.Errorf("config loader: %w", err)
+		return Config{}, fmt.Errorf("config loader: %w", err)
 	}
 
 	// deserialize the config
-	var config ModelConfig
+	var config Config
 	if err := parser.Unmarshal("", &config); err != nil {
-		return ModelConfig{}, fmt.Errorf("config deserialization: %w", err)
+		return Config{}, fmt.Errorf("config deserialization: %w", err)
+	}
+	config.SysPrompt = strings.Trim(config.SysPrompt, "\n")
+
+	// combine tool names
+	toolNames := make([]string, len(config.Tools))
+	for i, tool := range config.Tools {
+		toolNames[i] = string(tool)
+	}
+	tools := strings.Split(string(strings.Join(toolNames, " ")), " ")
+
+	// parse the tools
+	config.Tools = make([]ModelTool, len(tools))
+	for i, tool := range tools {
+		config.Tools[i] = ModelTool(tool)
+	}
+
+	// set theme
+	if config.Color {
+		Theme = RichTheme
+	} else {
+		Theme = PlainTheme
 	}
 	return config, nil
 }
 
 // create a config parser with the following order:
-// Defaults, XDG, parents, cwd, env vars.
+// defaults, xdg, parents, cwd, env.
 func createParser() (*koanf.Koanf, error) {
 	parser := koanf.New(".")
 
 	// set defaults
 	parser.Set("api_key", os.Getenv("OPENAI_API_KEY"))
-	parser.Set("model", "gpt-4o-mini")
-	parser.Set("prompt", strings.Trim(DefaultSysPrompt, "\n"))
+	parser.Set("model", shared.ChatModelGPT4oMini)
+	parser.Set("prompt", DefaultSysPrompt)
+	parser.Set("stream", true)
+	parser.Set("editor", os.Getenv("EDITOR"))
 
 	// load config files
 	var files []string = configFIles()
 	for i := len(files) - 1; i >= 0; i-- {
 		_ = parser.Load(file.Provider(files[i]), dotenv.Parser())
-	}
-
-	// support $XDG_CONFIG_HOME
-	if configDir, err := os.UserConfigDir(); err == nil {
-		f := filepath.Join(configDir, AppName, "config")
-		if _, err := os.Stat(f); err == nil {
-			_ = parser.Load(file.Provider(f), dotenv.Parser())
-		}
 	}
 
 	// load environment variables
@@ -99,11 +111,11 @@ func createParser() (*koanf.Koanf, error) {
 	return parser, nil
 }
 
-// return the config files in the cwd and its parents, in that order
+// Return the app config files in the following order: cwd, parents, xdg.
 func configFIles() []string {
 	var files []string
 	for dir, _ := os.Getwd(); ; dir = filepath.Dir(dir) {
-		f := filepath.Join(dir, "."+AppName)
+		f := filepath.Join(dir, "."+AppName+".env")
 
 		if _, err := os.Stat(f); err == nil {
 			files = append(files, f)
@@ -113,5 +125,35 @@ func configFIles() []string {
 			break // reached root
 		}
 	}
+
+	// support $XDG_CONFIG_HOME and %APPDATA%
+	if AppConfigDir != "" {
+		f := filepath.Join(AppConfigDir, "config")
+		if _, err := os.Stat(f); err == nil {
+			files = append(files, f)
+		}
+	}
 	return files
+}
+
+// MARK: CLI
+// ============================================================================
+
+func ConfigCMD(config Config) *cli.Command {
+	return &cli.Command{
+		Name: "config", Usage: "the app's config",
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			parser := koanf.New(".")
+			_ = parser.Load(structs.Provider(config, "koanf"), nil)
+
+			data, err := dotenv.Parser().Marshal(parser.All())
+			if err != nil {
+				return fmt.Errorf("serialization: %w", err)
+			}
+
+			str := strings.ReplaceAll(string(data), "\\n", "\n")
+			println(str)
+			return nil
+		},
+	}
 }

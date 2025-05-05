@@ -1,10 +1,10 @@
-module github.com/mohdfareed/chatgpt-cli
+module github.com/mohdfareed/gptx-cli
 
 go 1.23.8
 
 require ( // MARK: Dependencies
-	github.com/joho/godotenv v1.5.1
-	github.com/knadh/koanf/v2 v2.2.0
+	github.com/google/uuid v1.6.0
+	github.com/joho/godotenv v1.6.0-pre.2
 	github.com/openai/openai-go v0.1.0-beta.10
 	github.com/urfave/cli/v3 v3.3.2
 )
@@ -14,6 +14,7 @@ require ( // MARK: Configuration
 	github.com/knadh/koanf/providers/env v1.1.0
 	github.com/knadh/koanf/providers/file v1.2.0
 	github.com/knadh/koanf/providers/structs v1.0.0
+	github.com/knadh/koanf/v2 v2.2.0
 )
 
 require ( // MARK: Transitive
