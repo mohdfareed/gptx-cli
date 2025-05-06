@@ -1,12 +1,6 @@
-package main
+package openai
 
 import (
-	"encoding/base64"
-	"fmt"
-	"mime"
-	"net/http"
-	"path/filepath"
-
 	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/responses"
 	"github.com/openai/openai-go/shared"
@@ -16,7 +10,7 @@ import (
 // ============================================================================
 
 func newRequest(
-	config Config, msgs []Msg, tools []Tool,
+	config ModelConfig, msgs []openAIMsg, tools []Tool,
 ) responses.ResponseNewParams {
 	// config
 	data := responses.ResponseNewParams{
@@ -47,7 +41,7 @@ func newRequest(
 	data.Tools = toolDefs
 
 	// messages
-	reqMsgs := make([]MsgData, len(msgs))
+	reqMsgs := make([]openAIMsg, len(msgs))
 	for i, msg := range msgs {
 		reqMsgs[i] = msg.Data
 	}
@@ -58,33 +52,29 @@ func newRequest(
 // MARK: Response
 // ============================================================================
 
-func parseStream(event responses.ResponseStreamEventUnion) string {
-	return event.Delta
-}
-
-func parse(response *responses.Response) ([]Msg, error) {
-	msgs := []Msg{}
+func parse(response *responses.Response) ([]openAIMsg, error) {
+	msgs := []openAIMsg{}
 	for _, item := range response.Output {
-		msg := Msg{}
+		msg := openAIMsg{}
 		switch item.AsAny().(type) {
 		case responses.ResponseOutputMessage:
 			msgData := item.AsMessage().ToParam()
-			msg.Data = MsgData{OfOutputMessage: &msgData}
+			msg.Data = openAIMsg{OfOutputMessage: &msgData}
 		case responses.ResponseFunctionWebSearch:
 			msgData := item.AsWebSearchCall().ToParam()
-			msg.Data = MsgData{OfWebSearchCall: &msgData}
+			msg.Data = openAIMsg{OfWebSearchCall: &msgData}
 		case responses.ResponseFunctionToolCall:
 			msgData := item.AsFunctionCall().ToParam()
-			msg.Data = MsgData{OfFunctionCall: &msgData}
+			msg.Data = openAIMsg{OfFunctionCall: &msgData}
 		case responses.ResponseReasoningItem:
 			msgData := item.AsReasoning().ToParam()
-			msg.Data = MsgData{OfReasoning: &msgData}
+			msg.Data = openAIMsg{OfReasoning: &msgData}
 		case responses.ResponseComputerToolCall:
 			msgData := item.AsComputerCall().ToParam()
-			msg.Data = MsgData{OfComputerCall: &msgData}
+			msg.Data = openAIMsg{OfComputerCall: &msgData}
 		case responses.ResponseFileSearchToolCall:
 			msgData := item.AsFileSearchCall().ToParam()
-			msg.Data = MsgData{OfFileSearchCall: &msgData}
+			msg.Data = openAIMsg{OfFileSearchCall: &msgData}
 		}
 		msgs = append(msgs, msg)
 	}
@@ -99,61 +89,13 @@ func parse(response *responses.Response) ([]Msg, error) {
 // MARK: Messages
 // ============================================================================
 
-type File = responses.ResponseInputContentUnionParam
-
 // TextMsg creates a user message with the given text.
-func UserMsg(text string) Msg {
+func UserMsg(text string) openAIMsg {
 	msg := responses.ResponseInputTextParam{Text: text}
-	data := MsgData{
+	data := openAIMsg{
 		OfInputMessage: &responses.ResponseInputItemMessageParam{
-			Role: "user", Content: []File{{OfInputText: &msg}},
+			Role: "user", Content: []openAIData{{OfInputText: &msg}},
 		},
 	}
-	return Msg{Data: data}
-}
-
-// FilesMsg creates a user message with the given files.
-func FilesMsg(files []File) Msg {
-	data := MsgData{
-		OfInputMessage: &responses.ResponseInputItemMessageParam{
-			Role: "user", Content: files,
-		},
-	}
-	return Msg{Data: data}
-}
-
-func TextFile(data []byte, path string) (File, error) {
-	format := "# File: %s\n\n```%s\n%s\n```"
-	ext := filepath.Ext(path)
-	text := fmt.Sprintf(format, path, ext, string(data))
-	file := responses.ResponseInputTextParam{Text: text}
-	return File{OfInputText: &file}, nil
-}
-
-func DataFile(data []byte, path string) (File, error) {
-	file := responses.ResponseInputFileParam{
-		FileID:   param.Opt[string]{Value: path},
-		Filename: param.Opt[string]{Value: filepath.Base(path)},
-		FileData: param.Opt[string]{Value: string(data)},
-	} // TODO: test, convert to text message with file block
-	return File{OfInputFile: &file}, nil
-}
-
-func ImageFile(data []byte, path string) (File, error) {
-	// infer MIME from extension; fallback to sniffing bytes
-	ext := filepath.Ext(path)
-	mimeType := mime.TypeByExtension(ext)
-	if mimeType == "" {
-		mimeType = http.DetectContentType(data)
-	}
-
-	// base64‑encode and assemble
-	b64 := base64.StdEncoding.EncodeToString(data)
-	url := fmt.Sprintf("data:%s;base64,%s", mimeType, b64)
-
-	image := responses.ResponseInputImageParam{
-		FileID:   param.Opt[string]{Value: path},
-		ImageURL: param.Opt[string]{Value: url},
-	}
-	return File{OfInputImage: &image}, nil
+	return openAIMsg{Data: data}
 }

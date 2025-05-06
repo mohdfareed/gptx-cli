@@ -1,23 +1,16 @@
-package main
+package openai
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
-	"github.com/urfave/cli/v3"
 )
 
-// The OpenAI client.
-type Model struct {
-	cli    openai.Client
-	config Config
-	tools  ModelTools
-}
-
 // Create a new OpenAI model client.
-func CreateModel(config Config, tools ModelTools) Model {
+func CreateModel(
+	config ModelConfig, tools ModelTools, platform *ModelPlatform[any],
+) Model {
 	client := openai.NewClient(option.WithAPIKey(config.APIKey))
 	return Model{
 		cli:    client,
@@ -31,7 +24,7 @@ func CreateModel(config Config, tools ModelTools) Model {
 func (m *Model) Validate() error {
 	tmp := m.config.MaxTokens
 	m.config.MaxTokens = 16
-	_, err := m.Prompt([]Msg{UserMsg("")}, []Tool{}, func(string) {})
+	_, err := m.Prompt([]openAIMsg{UserMsg("")}, []Tool{}, func(string) {})
 	m.config.MaxTokens = tmp
 	if err != nil {
 		return fmt.Errorf("validation: %w", err)
@@ -43,13 +36,7 @@ func (m *Model) Validate() error {
 // ============================================================================
 
 // Generate or stream a model reply.
-func (m *Model) Run(message string, handler func(string)) (string, error) {
-	// process message tags
-	message, err := ProcessTags(message)
-	if err != nil {
-		return "", fmt.Errorf("model: %w", err)
-	}
-
+func (m *Model) Msg(chat openAIChat, handler func(string)) (string, error) {
 	// load attachments
 	files, err := MsgFiles(m.config.Files)
 	if err != nil {
@@ -70,7 +57,7 @@ func (m *Model) Run(message string, handler func(string)) (string, error) {
 	}
 
 	// create prompt
-	msgs := []Msg{}
+	msgs := []openAIMsg{}
 	if len(files) > 0 {
 		msgs = append(msgs, FilesMsg(files))
 	}
@@ -101,55 +88,4 @@ func (m *Model) Run(message string, handler func(string)) (string, error) {
 		reply[len(reply)-1].Usage.RawJSON(),
 	)
 	return usage, nil
-}
-
-// MARK: CLI
-// ============================================================================
-
-func ValidateCMD(model *Model) *cli.Command {
-	return &cli.Command{
-		Name: "check", Usage: "validate the model config",
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			ToolsCMD(model.tools)
-			println(Theme.Magenta + "validating model config..." + Theme.Reset)
-			if err := model.Validate(); err != nil {
-				println(Theme.Error + err.Error())
-			} else {
-				println(Theme.Success + "config valid" + Theme.Reset)
-			}
-			return nil
-		},
-	}
-}
-
-func MsgCMD(model *Model) *cli.Command {
-	var msgs []string
-	return &cli.Command{
-		Name:  AppName,
-		Usage: "message an OpenAI model",
-		Arguments: []cli.Argument{
-			&cli.StringArgs{
-				Name:        "msgs",
-				UsageText:   "the message to send to the model",
-				Destination: &msgs,
-				Max:         -1,
-			},
-		},
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			prompt, err := PromptUser(model.config, msgs)
-			if err != nil {
-				println(Theme.Error + err.Error())
-			}
-
-			isStreamed := model.config.Stream
-			reply, err := model.Run(prompt, func(c string) {
-				print(c)
-			})
-
-			if !isStreamed {
-				print("@model: " + reply)
-			}
-			return err
-		},
-	}
 }

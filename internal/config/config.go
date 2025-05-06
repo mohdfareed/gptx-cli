@@ -26,9 +26,9 @@ var AppConfigDir string = func() string {
 const AppConfigFile string = "." + AppName + ".env"
 
 // The default system prompt.
-const DefaultSysPrompt string = "You are '" + AppName + "', " + `a CLI tool.
-Respond as if you are an extension of the command line.
-Do not include any additional text.
+const DefaultSysPrompt string = `
+You are '%s', a CLI app. You are an extension of the command line.
+You behave and respond like a command line tool. Be concise.
 `
 
 // The model's configuration.
@@ -93,7 +93,7 @@ func createParser() (*koanf.Koanf, error) {
 	// set defaults
 	parser.Set("api_key", os.Getenv("OPENAI_API_KEY"))
 	parser.Set("model", shared.ChatModelGPT4oMini)
-	parser.Set("prompt", DefaultSysPrompt)
+	parser.Set("prompt", fmt.Sprintf(DefaultSysPrompt, AppName))
 	parser.Set("stream", true)
 	parser.Set("editor", os.Getenv("EDITOR"))
 

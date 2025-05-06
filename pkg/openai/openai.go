@@ -1,27 +1,23 @@
-package main
+package openai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/openai/openai-go/responses"
 )
 
-var WebSearchTool Tool = Tool{
-	Name: "web_search",
-	Desc: "search the web for information",
-	Def: responses.ToolParamOfWebSearch(
-		responses.WebSearchToolTypeWebSearchPreview,
-	), // REVIEW: check preview status
-	Init: func(config Config) error {
-		return nil
-	},
-}
+const (
+	OpenAI Platforms = "openai"
+)
+
+type ToolDef = responses.ToolUnionParam
 
 // Generate a reply from the model.
 func (m *Model) Prompt(
-	msgs []Msg, tools []Tool, h func(string),
-) ([]Msg, error) {
+	msgs []openAIMsg, tools []Tool, h func(string),
+) ([]openAIMsg, error) {
 	request := newRequest(m.config, msgs, tools)
 	if m.config.Stream {
 		return m.stream(request, h)
@@ -32,7 +28,7 @@ func (m *Model) Prompt(
 
 func (m *Model) generate(
 	r responses.ResponseNewParams, h func(string),
-) ([]Msg, error) {
+) ([]openAIMsg, error) {
 	response, err := m.cli.Responses.New(context.Background(), r)
 	if err != nil {
 		return nil, fmt.Errorf("openai: %w", err)
@@ -46,7 +42,7 @@ func (m *Model) generate(
 
 func (m *Model) stream(
 	r responses.ResponseNewParams, h func(string),
-) ([]Msg, error) {
+) ([]openAIMsg, error) {
 	stream := m.cli.Responses.NewStreaming(context.Background(), r)
 	defer stream.Close()
 
@@ -69,4 +65,18 @@ func (m *Model) stream(
 		return nil, fmt.Errorf("openai: %s", response.IncompleteDetails.Reason)
 	}
 	return parse(&response)
+}
+
+// MARK: Helpers
+// ============================================================================
+
+func objToMap(obj any) map[string]interface{} {
+	jsonStr, err := json.Marshal(obj)
+	if err != nil {
+		return nil
+	}
+
+	result := make(map[string]interface{})
+	json.Unmarshal([]byte(jsonStr), &result)
+	return result
 }
