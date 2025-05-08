@@ -15,7 +15,7 @@ if ($Help) {
 }
 
 # Arguments
-$AppPath = Join-Path -Path $PWD -ChildPath "gptx"
+$AppPath = Join-Path -Path $PWD -ChildPath "cmd/gptx"
 New-Item -ItemType Directory -Path $Output -ErrorAction SilentlyContinue | Out-Null
 $BinPath = Resolve-Path -Path $Output
 
@@ -40,15 +40,23 @@ function Build-Binary {
 
   $ExeName = Split-Path -Leaf $AppPath
   $OutputExe = Join-Path -Path $Output -ChildPath $ExeName
+  if ($Platform -eq 'windows') {
+    $OutputExe = "$OutputExe.exe"
+  }
+
   $ArchiveName = "$ExeName-$Id.zip"
   $ArchivePath = Join-Path -Path $Output -ChildPath $ArchiveName
 
   Write-Host "Building for $Platform $Architecture..."
   $env:GOOS = $Platform
   $env:GOARCH = $Architecture
+  go build -C $Output $AppPath
 
-  go build -o $OutputExe $AppPath
+  if ($Platform -ne 'windows') {
+    chmod +x "$OutputExe" # make it executable
+  }
   Compress-Archive -Path $OutputExe -DestinationPath $ArchivePath -Force
+  Remove-Item -Path $OutputExe -Force
   Write-Host "-> Packaged: $ArchivePath"
 }
 

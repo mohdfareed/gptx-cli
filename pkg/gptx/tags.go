@@ -1,4 +1,4 @@
-package main
+package gptx
 
 import (
 	"fmt"
@@ -22,15 +22,17 @@ func ProcessTags(prompt string) (string, error) {
 	// process each tag
 	for _, match := range matches {
 		var result string
+		var err error
+
 		switch match[1] {
 		case "file":
-			r, err := fileTag(match[2])
-			if err != nil {
-				return "", fmt.Errorf("file tag: %w", err)
-			}
-			result = r
+			result, err = fileTag(match[2])
 		default: // unknown tag
 			continue
+		}
+
+		if err != nil {
+			return "", fmt.Errorf("tags: %w", err)
 		}
 		prompt = strings.Replace(prompt, match[0], result, 1)
 	}
@@ -63,14 +65,14 @@ func fileTag(args string) (string, error) {
 	if len(match) == 3 {
 		start, err := strconv.Atoi(match[2])
 		if err != nil {
-			return "", fmt.Errorf("start line: %w", err)
+			return "", fmt.Errorf("file tag: %w", err)
 		}
 		end, err := strconv.Atoi(match[3])
 		if err != nil {
-			return "", fmt.Errorf("end line: %w", err)
+			return "", fmt.Errorf("file tag: %w", err)
 		}
 		if start < 0 || end < 0 || start > end {
-			return "", fmt.Errorf("invalid range: %d-%d", start, end)
+			return "", fmt.Errorf("file tag: %d-%d", start, end)
 		}
 		file = file[start-1 : end-1]
 		id = fmt.Sprintf("%s:%d-%d", id, start, end)

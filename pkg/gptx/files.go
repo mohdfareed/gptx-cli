@@ -1,4 +1,4 @@
-package main
+package gptx
 
 import (
 	"fmt"
@@ -53,11 +53,6 @@ func resolveFiles(paths []string) ([]string, error) {
 		matches, err := filepath.Glob(path)
 		if err != nil {
 			return nil, fmt.Errorf("pattern %q: %w", path, err)
-		}
-
-		if len(matches) == 0 {
-			warn(fmt.Errorf("not found: %q", path))
-			return []string{}, nil
 		}
 		files = append(files, matches...)
 	}

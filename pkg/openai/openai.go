@@ -1,4 +1,4 @@
-package main
+package openai
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 
 	"github.com/openai/openai-go/responses"
 )
+
+type ToolDef = responses.ToolUnionParam
 
 var WebSearchTool Tool = Tool{
 	Name: "web_search",

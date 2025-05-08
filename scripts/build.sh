@@ -7,7 +7,7 @@ USAGE="usage: $0 [output=.bin]"
 if [ "$#" -gt 1 ]; then echo "$USAGE" && exit 1; fi # don't bother reading
 
 # args
-APP=$(realpath ./gptx) # the app source
+APP=$(realpath ./cmd/gptx) # the app source
 BIN="${1:-.bin}" # the binaries path
 
 # setup
@@ -21,9 +21,10 @@ build() { # usage: build <plat> <arch> <id>
   plat="$1"; arch="$2"; id="$3";
   archive=$BIN/$(basename "$APP")-$id.zip # the archive name
 
-  # build and package
+  # build and package (env, build, perm, zip)
   echo "building for $plat $arch..."
   GOOS=$plat GOARCH=$arch go build -C "$BIN" "$APP"
+  find "$BIN" -maxdepth 1 -type f ! -name '*.zip' -exec chmod +x {} \;
   zip -jm "$archive" "$BIN"/* -x '*.zip' > /dev/null
   echo "-> packaged: $archive"
 }

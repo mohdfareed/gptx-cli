@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/mohdfareed/gptx-cli/pkg/gptx"
 )
 
 // MARK: Prompt
@@ -13,13 +15,15 @@ import (
 
 // PromptUser gets user message. Input is retrieved in the following order:
 // user input -> editor -> terminal
-func PromptUser(config Config, msgs []string) (string, error) {
+func PromptUser(
+	config gptx.Config, msgs []string, editor string) (string, error) {
 	var prompt string
 	var err error
+
 	if len(msgs) > 0 { // user input provided
-		prompt, err = strings.Join(msgs, " "), nil
-	} else if config.Editor != "" { // editor specified
-		prompt, err = editorPrompt(config.Editor)
+		prompt = strings.Join(msgs, " ")
+	} else if editor != "" { // editor specified
+		prompt, err = editorPrompt(editor)
 	} else {
 		prompt, err = terminalPrompt(config)
 	}
@@ -29,15 +33,15 @@ func PromptUser(config Config, msgs []string) (string, error) {
 // MARK: Terminal
 // ============================================================================
 
-func terminalPrompt(config Config) (string, error) {
+func terminalPrompt(config gptx.Config) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
-	print(ModelPrefix(config.Model, config.Chat))
+	print(modelPrefix(config.Model, ""))
 
 	prompt, err := reader.ReadString('\n')
 	if err != nil {
 		println("Error reading prompt:", err)
 		return prompt, err
-	}
+	} // FIXME: handle shift-enter
 	return prompt, nil
 }
 

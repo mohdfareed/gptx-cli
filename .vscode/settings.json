@@ -11,6 +11,7 @@
   "cSpell.words": [
     "devcontainers",
     "dotenv",
+    "envconfig",
     "extglob",
     "GOARCH",
     "godotenv",
@@ -18,12 +19,15 @@
     "gptx",
     "Includable",
     "joho",
+    "kelseyhightower",
     "knadh",
     "koanf",
     "mohdfareed",
     "pwsh",
     "softprops",
     "urfave",
+    "Usagef",
+    "Usaget",
     "webp"
   ]
 }

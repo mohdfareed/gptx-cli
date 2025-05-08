@@ -15,3 +15,4 @@ It allows you to interact with any GPT model directly from the terminal.
 - Refactor `gptx/config` (use `godotenv` only)
 - Support custom model tools
     - Shell commands
+- Text or filepath for the **prompt**
