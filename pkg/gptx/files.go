@@ -4,28 +4,30 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/mohdfareed/gptx-cli/pkg/openai"
 )
 
 // MsgFiles gets message files from the given paths.
-func MsgFiles(paths []string) ([]File, error) {
+func MsgFiles(paths []string) ([]openai.File, error) {
 	_resolved, err := resolveFiles(paths)
 	if err != nil {
 		return nil, fmt.Errorf("files: %w", err)
 	}
 	paths = _resolved
 
-	files := make([]File, len(paths))
+	files := make([]openai.File, len(paths))
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("file %q: %w", path, err)
 		}
 
-		var fileData File
+		var fileData openai.File
 		switch filepath.Ext(path) {
 		// image files
 		case ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff", ".svg":
-			image, err := ImageFile(data, path)
+			image, err := openai.ImageFile(data, path)
 			if err != nil {
 				return nil, fmt.Errorf("image file %q: %w", path, err)
 			}
@@ -33,7 +35,7 @@ func MsgFiles(paths []string) ([]File, error) {
 
 		// text files
 		default: // TODO: test and replace with textFile
-			data, err := DataFile(data, path)
+			data, err := openai.DataFile(data, path)
 			if err != nil {
 				return nil, fmt.Errorf("data file %q: %w", path, err)
 			}

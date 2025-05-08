@@ -7,31 +7,6 @@ import (
 	"github.com/openai/openai-go/responses"
 )
 
-type ToolDef = responses.ToolUnionParam
-
-var WebSearchTool Tool = Tool{
-	Name: "web_search",
-	Desc: "search the web for information",
-	Def: responses.ToolParamOfWebSearch(
-		responses.WebSearchToolTypeWebSearchPreview,
-	), // REVIEW: check preview status
-	Init: func(config Config) error {
-		return nil
-	},
-}
-
-// Generate a reply from the model.
-func (m *Model) Prompt(
-	msgs []Msg, tools []Tool, h func(string),
-) ([]Msg, error) {
-	request := newRequest(m.config, msgs, tools)
-	if m.config.Stream {
-		return m.stream(request, h)
-	} else {
-		return m.generate(request, h)
-	}
-}
-
 func (m *Model) generate(
 	r responses.ResponseNewParams, h func(string),
 ) ([]Msg, error) {

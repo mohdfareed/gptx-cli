@@ -17,6 +17,9 @@ You behave and respond like a command line tool. Be concise.
 
 var appDir string = func() string {
 	configDir, _ := os.UserConfigDir()
+	if configDir == "" {
+		return ""
+	}
 	return filepath.Join(configDir, AppName)
 }()
 

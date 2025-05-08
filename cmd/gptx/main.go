@@ -34,6 +34,7 @@ func main() {
 	cmd.Commands = []*cli.Command{
 		// validateCMD(&model),
 		configCMD(config),
+		usageCMD(config),
 		demoCMD(),
 	}
 	cmd.EnableShellCompletion = true

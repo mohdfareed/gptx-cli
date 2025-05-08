@@ -1,71 +1,49 @@
 package gptx
 
-// import (
-// 	"context"
-// 	"fmt"
-// 	"strconv"
+import (
+	"encoding/json"
+	"fmt"
+	"os"
 
-// 	"github.com/openai/openai-go/responses"
-// 	"github.com/urfave/cli/v3"
-// )
+	"github.com/mohdfareed/gptx-cli/pkg/openai"
+)
 
-// type MsgUsage = responses.ResponseUsage
+// UsagePath is the path to the usage file.
+var UsagePath = appDir + "/usage.json"
 
-// // Return the total aggregated usage of the history.
-// func TotalUsage(msgs []Msg) MsgUsage {
-// 	usage := MsgUsage{}
-// 	for _, msg := range msgs {
-// 		usage.InputTokens += msg.Usage.InputTokens
-// 		usage.OutputTokens += msg.Usage.OutputTokens
-// 		usage.TotalTokens += msg.Usage.TotalTokens
+// GetUsage reads the current usage from the usage file and returns it.
+// If the file does not exist, it returns a zero MsgUsage.
+func GetUsage() (openai.MsgUsage, error) {
+	var u openai.MsgUsage
+	data, err := os.ReadFile(UsagePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return openai.MsgUsage{}, nil
+		}
+		return u, fmt.Errorf("read usage: %w", err)
+	}
 
-// 		reasoning := msg.Usage.OutputTokensDetails.ReasoningTokens
-// 		usage.OutputTokensDetails.ReasoningTokens += reasoning
-// 		cache := msg.Usage.InputTokensDetails.CachedTokens
-// 		usage.InputTokensDetails.CachedTokens += cache
-// 	}
-// 	return usage
-// }
+	if err := json.Unmarshal(data, &u); err != nil {
+		return u, fmt.Errorf("unmarshal usage: %w", err)
+	}
+	return u, nil
+}
 
-// // MARK: CLI
-// // ============================================================================
+// AddUsage loads the existing usage, adds the provided MsgUsage values,
+// and writes the updated totals back to the usage file.
+func AddUsage(usage openai.MsgUsage) error {
+	curr, err := GetUsage()
+	if err != nil {
+		return err
+	}
+	total := openai.TotalUsage([]openai.MsgUsage{curr, usage})
 
-// func UsageCMD(config Config) *cli.Command {
-// 	printRow := func(key string, value string) {
-// 		println(
-// 			Theme.Dim + key + Theme.Reset + " " +
-// 				Theme.Bold + value + Theme.Reset,
-// 		)
-// 	}
-
-// 	return &cli.Command{
-// 		Name: "usage", Usage: "show the chat's usage",
-// 		Action: func(ctx context.Context, cmd *cli.Command) error {
-// 			history, err := LoadChat(config.Chat)
-// 			if err != nil {
-// 				return fmt.Errorf("usage: %w", err)
-// 			}
-// 			last := history.Last(1)[0].Usage
-// 			total := TotalUsage(history.Msgs)
-
-// 			println(Theme.Bold + "last tokens usage:" + Theme.Reset)
-// 			lastReasoning := last.OutputTokensDetails.ReasoningTokens
-// 			lastCache := last.InputTokensDetails.CachedTokens
-// 			printRow(Theme.Red+"    input:"+Theme.Reset, strconv.Itoa(int(last.InputTokens)))
-// 			printRow(Theme.Green+"   output:"+Theme.Reset, strconv.Itoa(int(last.OutputTokens)))
-// 			printRow(Theme.Blue+"    total:"+Theme.Reset, strconv.Itoa(int(last.TotalTokens)))
-// 			printRow("reasoning:", strconv.Itoa(int(lastReasoning)))
-// 			printRow("   cached:", strconv.Itoa(int(lastCache)))
-
-// 			println(Theme.Bold + "total tokens usage:" + Theme.Reset)
-// 			totalReasoning := total.OutputTokensDetails.ReasoningTokens
-// 			totalCache := total.InputTokensDetails.CachedTokens
-// 			printRow(Theme.Red+"    input:"+Theme.Reset, strconv.Itoa(int(total.InputTokens)))
-// 			printRow(Theme.Green+"   output:"+Theme.Reset, strconv.Itoa(int(total.OutputTokens)))
-// 			printRow(Theme.Blue+"    total:"+Theme.Reset, strconv.Itoa(int(total.TotalTokens)))
-// 			printRow("reasoning:", strconv.Itoa(int(totalReasoning)))
-// 			printRow("   cached:", strconv.Itoa(int(totalCache)))
-// 			return nil
-// 		},
-// 	}
-// }
+	data, err := json.MarshalIndent(total, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal usage: %w", err)
+	}
+	if err := os.WriteFile(UsagePath, data, 0644); err != nil {
+		return fmt.Errorf("save usage: %w", err)
+	}
+	return nil
+}

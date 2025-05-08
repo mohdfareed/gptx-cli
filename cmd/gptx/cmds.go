@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
 	"github.com/urfave/cli/v3"
@@ -42,6 +43,32 @@ func configCMD(config gptx.Config) *cli.Command {
 			json := string(data)
 
 			fmt.Println(json)
+			return nil
+		},
+	}
+}
+
+// MARK: CLI
+// ============================================================================
+
+func usageCMD(config gptx.Config) *cli.Command {
+	printRow := func(key string, value string) {
+		println(Dim + key + Reset + " " + Bold + value + Reset)
+	}
+
+	return &cli.Command{
+		Name: "usage", Usage: "show the tokens usage",
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			usage, err := gptx.GetUsage()
+			if err != nil {
+				return err
+			}
+			total := usage.InputTokens + usage.OutputTokens
+
+			println(Bold + "usage:" + Reset + gptx.UsagePath)
+			printRow(R+" input:"+Reset, strconv.Itoa(int(usage.InputTokens)))
+			printRow(G+"output:"+Reset, strconv.Itoa(int(usage.OutputTokens)))
+			printRow(B+" total:"+Reset, strconv.Itoa(int(total)))
 			return nil
 		},
 	}
