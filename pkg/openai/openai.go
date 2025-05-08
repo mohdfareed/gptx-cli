@@ -4,27 +4,29 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/responses"
 )
 
-func (m *Model) generate(
-	r responses.ResponseNewParams, h func(string),
-) ([]Msg, error) {
-	response, err := m.cli.Responses.New(context.Background(), r)
+func Generate(
+	c openai.Client, r ModelRequest, h func(string),
+) ([]MsgData, MsgUsage, error) {
+	response, err := c.Responses.New(context.Background(), r)
 	if err != nil {
-		return nil, fmt.Errorf("openai: %w", err)
+		return nil, response.Usage, fmt.Errorf("openai: %w", err)
 	}
 	if string(response.Error.Code) != "" {
-		return nil, fmt.Errorf("openai: %s", response.Error.Message)
+		msg := response.Error.Message
+		return nil, response.Usage, fmt.Errorf("openai: %s", msg)
 	}
 	h(response.OutputText())
 	return parse(response)
 }
 
-func (m *Model) stream(
-	r responses.ResponseNewParams, h func(string),
-) ([]Msg, error) {
-	stream := m.cli.Responses.NewStreaming(context.Background(), r)
+func Stream(
+	c openai.Client, r ModelRequest, h func(string),
+) ([]MsgData, MsgUsage, error) {
+	stream := c.Responses.NewStreaming(context.Background(), r)
 	defer stream.Close()
 
 	// stream the response
@@ -40,10 +42,11 @@ func (m *Model) stream(
 	println() // formatting
 
 	if err := stream.Err(); err != nil {
-		return nil, fmt.Errorf("openai: %w", err)
+		return nil, response.Usage, fmt.Errorf("openai: %w", err)
 	}
 	if response.IncompleteDetails.Reason != "" {
-		return nil, fmt.Errorf("openai: %s", response.IncompleteDetails.Reason)
+		reason := response.IncompleteDetails.Reason
+		return nil, response.Usage, fmt.Errorf("openai: %s", reason)
 	}
 	return parse(&response)
 }

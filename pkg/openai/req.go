@@ -6,14 +6,17 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
+// ModelRequest represents the model request structure.
+type ModelRequest = responses.ResponseNewParams
+
 // MARK: Requests
 // ============================================================================
 
-func newRequest(
+func NewRequest(
 	model shared.ResponsesModel,
 	sysPrompt string, msgs []MsgData, tools []ToolDef,
 	maxTokens int64, temp float64, reasoning shared.ReasoningEffort,
-) responses.ResponseNewParams {
+) ModelRequest {
 	history := responses.ResponseNewParamsInputUnion{OfInputItemList: msgs}
 	data := responses.ResponseNewParams{
 		Model:           model,
@@ -22,14 +25,18 @@ func newRequest(
 		Instructions:    param.Opt[string]{Value: sysPrompt},
 		MaxOutputTokens: param.Opt[int64]{Value: maxTokens},
 		Temperature:     param.Opt[float64]{Value: temp},
-		Reasoning: shared.ReasoningParam{
-			Effort:          reasoning,
-			GenerateSummary: shared.ReasoningGenerateSummaryDetailed,
-		},
 		Include: []responses.ResponseIncludable{
 			responses.ResponseIncludableMessageInputImageImageURL,
 		},
 		ParallelToolCalls: param.Opt[bool]{Value: true},
+	}
+
+	// reasoning
+	if reasoning != "" {
+		data.Reasoning = shared.ReasoningParam{
+			Effort:          reasoning,
+			GenerateSummary: shared.ReasoningGenerateSummaryDetailed,
+		}
 	}
 	return data
 }
