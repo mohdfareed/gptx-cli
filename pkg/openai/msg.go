@@ -5,55 +5,68 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/responses"
 )
 
-// MsgData represents the data structure for a message.
-type MsgData = responses.ResponseInputItemUnionParam
-
-// File represents the data structure for a file attachment.
-type File = responses.ResponseInputContentUnionParam
-
 // UserMsg creates a user message with the given text and files.
-func UserMsg(text string, files []File) MsgData {
+func UserMsg(text string, files []string) (MsgData, error) {
+	var data []FileData
+	for _, path := range files {
+		file, err := readFile(path)
+		if err != nil {
+			return MsgData{}, fmt.Errorf("readFile: %w", err)
+		}
+		data = append(data, file)
+	}
+
 	if text != "" {
-		files = append(files, File{
+		data = append(data, FileData{
 			OfInputText: &responses.ResponseInputTextParam{Text: text},
 		})
 	}
 
-	data := MsgData{
+	msg := MsgData{
 		OfInputMessage: &responses.ResponseInputItemMessageParam{
-			Role: "user", Content: files,
+			Role: "user", Content: data,
 		},
 	}
-	return data
+	return msg, nil
 }
 
-// TextFile creates a text file with the given data and path.
-func TextFile(data []byte, path string) (File, error) {
-	format := "# File: %s\n\n```%s\n%s\n```"
-	ext := filepath.Ext(path)
-	text := fmt.Sprintf(format, path, ext, string(data))
-	file := responses.ResponseInputTextParam{Text: text}
-	return File{OfInputText: &file}, nil
+func readFile(path string) (FileData, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return FileData{}, fmt.Errorf("loadFile: %w", err)
+	}
+
+	switch filepath.Ext(path) {
+	case ".jpg", ".jpeg", ".png", ".svg":
+		return imageFile(data, path)
+	default:
+		return dataFile(data, path)
+	}
 }
 
-// DataFile creates a data file with the given data and path.
-func DataFile(data []byte, path string) (File, error) {
+func dataFile(data []byte, path string) (FileData, error) {
+	// format := "# File: %s\n\n```%s\n%s\n```"
+	// ext := filepath.Ext(path)
+	// text := fmt.Sprintf(format, path, ext, string(data))
+	// file := responses.ResponseInputTextParam{Text: text}
+	// return FileData{OfInputText: &file}, nil
+
 	file := responses.ResponseInputFileParam{
 		FileID:   param.Opt[string]{Value: path},
 		Filename: param.Opt[string]{Value: filepath.Base(path)},
 		FileData: param.Opt[string]{Value: string(data)},
-	} // TODO: test, convert to text message with file block
-	return File{OfInputFile: &file}, nil
+	} // REVIEW: convert to text message if not a text file
+	return FileData{OfInputFile: &file}, nil
 }
 
-// ImageFile creates an image file with the given data and path.
-func ImageFile(data []byte, path string) (File, error) {
+func imageFile(data []byte, path string) (FileData, error) {
 	// infer MIME from extension; fallback to sniffing bytes
 	ext := filepath.Ext(path)
 	mimeType := mime.TypeByExtension(ext)
@@ -65,9 +78,10 @@ func ImageFile(data []byte, path string) (File, error) {
 	b64 := base64.StdEncoding.EncodeToString(data)
 	url := fmt.Sprintf("data:%s;base64,%s", mimeType, b64)
 
+	// create image file
 	image := responses.ResponseInputImageParam{
 		FileID:   param.Opt[string]{Value: path},
 		ImageURL: param.Opt[string]{Value: url},
 	}
-	return File{OfInputImage: &image}, nil
+	return FileData{OfInputImage: &image}, nil
 }

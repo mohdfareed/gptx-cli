@@ -8,26 +8,15 @@ import (
 	"github.com/openai/openai-go/responses"
 )
 
+// Generate sends a request to the OpenAI API and returns the generated
+// messages and usage information. It uses the provided [StreamParser] to
+// handle streaming events.
 func Generate(
-	c openai.Client, r ModelRequest, h func(string),
-) ([]MsgData, MsgUsage, error) {
-	response, err := c.Responses.New(context.Background(), r)
-	if err != nil {
-		return nil, response.Usage, fmt.Errorf("openai: %w", err)
-	}
-	if string(response.Error.Code) != "" {
-		msg := response.Error.Message
-		return nil, response.Usage, fmt.Errorf("openai: %s", msg)
-	}
-	h(response.OutputText())
-	return parse(response)
-}
-
-func Stream(
-	c openai.Client, r ModelRequest, h func(string),
+	c openai.Client, r ModelRequest, p StreamParser,
 ) ([]MsgData, MsgUsage, error) {
 	stream := c.Responses.NewStreaming(context.Background(), r)
 	defer stream.Close()
+	defer p.close()
 
 	// stream the response
 	var response responses.Response
@@ -37,10 +26,10 @@ func Stream(
 			response = data.AsResponseCompleted().Response
 			break
 		}
-		h(parseStream(data))
+		p.parseStream(data)
 	}
-	println() // formatting
 
+	// check for errors
 	if err := stream.Err(); err != nil {
 		return nil, response.Usage, fmt.Errorf("openai: %w", err)
 	}
