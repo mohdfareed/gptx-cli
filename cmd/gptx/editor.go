@@ -38,7 +38,18 @@ func PromptUser(config gptx.Config, args []string) (string, error) {
 	} else if isTerm { // running in terminal
 		msg, err = terminalPrompt(config)
 	}
-	return strings.TrimSpace(msg), err
+
+	if err != nil {
+		return "", err
+	}
+
+	// Process any tags in the prompt text
+	processed, err := gptx.ProcessTags(strings.TrimSpace(msg))
+	if err != nil {
+		return "", fmt.Errorf("process tags: %w", err)
+	}
+
+	return processed, nil
 }
 
 // MARK: Editor

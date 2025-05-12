@@ -53,7 +53,7 @@ var colorizeFlag = &cli.StringFlag{
 			deColorize()
 		case "always":
 		default:
-			errMsg(fmt.Errorf("invalid color option: %s", value))
+			Error(fmt.Errorf("invalid color option: %s", value))
 			exit(ExitCodeError)
 		}
 		return nil

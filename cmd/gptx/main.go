@@ -27,7 +27,7 @@ func main() {
 
 	// run the app
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
-		errMsg(err)
+		Error(err)
 		exit(ExitCodeError)
 	}
 }

@@ -101,6 +101,7 @@ func (c *Config) resolveFiles(
 ) error {
 	var files []string
 	for _, path := range paths {
+		// Handle file globbing for the path part
 		matches, err := filepath.Glob(path)
 		if err != nil {
 			return fmt.Errorf("file pattern %q: %w", path, err)
@@ -114,31 +115,44 @@ func (c *Config) resolveFiles(
 // MARK: Config Files
 // ============================================================================
 
-func init() {
-	godotenv.Load(configFIles()...)
+// LoadConfigFiles loads configuration from dotenv files.
+// It searches hierarchically from the current directory up to the root,
+// following Git-like behavior for .gptx files.
+func LoadConfigFiles() {
+	godotenv.Load(ConfigFiles()...)
 }
 
-func configFIles() []string {
-	var files []string // cwd, parents, app dir
+// ConfigFiles returns the paths of configuration files to load.
+// It searches for:
+// - .gptx files in the current directory and all parent directories
+// - config file in the application directory
+func ConfigFiles() []string {
+	var files []string
 
-	// load files from cwd then its parents
-	for dir, _ := os.Getwd(); ; dir = filepath.Dir(dir) {
+	// Look for .gptx files in current directory and all parents (Git-like behavior)
+	for dir, err := os.Getwd(); err == nil; dir = filepath.Dir(dir) {
 		f := filepath.Join(dir, "."+AppName)
 		if _, err := os.Stat(f); err == nil {
 			files = append(files, f)
 		}
 
+		// Stop at root directory
 		if dir == filepath.Dir(dir) {
-			break // reached root
+			break
 		}
 	}
 
-	// support $XDG_CONFIG_HOME and %APPDATA%
+	// Global application config
 	if AppDir != "" {
-		f := filepath.Join(AppDir, "config")
-		if _, err := os.Stat(f); err == nil {
-			files = append(files, f)
+		globalConfig := filepath.Join(AppDir, "config")
+		if _, err := os.Stat(globalConfig); err == nil {
+			files = append(files, globalConfig)
 		}
 	}
+
 	return files
+}
+
+func init() {
+	LoadConfigFiles()
 }
