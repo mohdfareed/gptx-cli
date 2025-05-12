@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -22,10 +23,30 @@ var AppDir string = func() string {
 }()
 
 // EnvVar returns the environment variable name for a given key.
-func EnvVar(name string) string {
+// If the key is a struct field (using reflection), it will use the json tag.
+// Otherwise, it treats the input as a direct key.
+func EnvVar(obj *Config, field string) string {
+	var tag string
+	if obj != nil {
+		// Use reflection to get the field tag
+		t := reflect.TypeOf(*obj)
+		f, found := t.FieldByName(field)
+		if !found {
+			panic(fmt.Sprintf("field '%s' not found in type '%T'", field, obj))
+		}
+		tag = f.Tag.Get("env")
+	} else {
+		tag = field // If obj is nil, use the field name directly
+	}
+
+	// Format with app name prefix
 	prefix := strings.ToUpper(AppName)
-	return fmt.Sprintf("%s_%s", prefix, name)
+	postfix := strings.ToUpper(tag)
+	return fmt.Sprintf("%s_%s", prefix, postfix)
 }
+
+// MARK: Config Files
+// ============================================================================
 
 // LoadConfigFiles loads configuration from dotenv files.
 // It searches hierarchically from the current directory up to the root,

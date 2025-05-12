@@ -18,7 +18,7 @@ var editorFlag = &cli.StringFlag{
 	Name:        "editor",
 	Usage:       "Use specified text editor for input",
 	Aliases:     []string{"e"},
-	Sources:     cli.EnvVars(gptx.EnvVar("EDITOR"), "EDITOR"),
+	Sources:     cli.EnvVars(gptx.EnvVar(nil, "EDITOR"), "EDITOR"),
 	Destination: &editor,
 }
 var editor string

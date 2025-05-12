@@ -65,18 +65,22 @@ var (
 // CLI flags for controlling log output.
 var (
 	debugFlag = &cli.BoolFlag{
-		Name:        "verbose",
-		Usage:       "Show debug messages",
-		Aliases:     []string{"v"},
-		Sources:     cli.EnvVars(gptx.EnvVar("VERBOSE"), gptx.EnvVar("DEBUG")),
+		Name:    "verbose",
+		Usage:   "Show debug messages",
+		Aliases: []string{"v"},
+		Sources: cli.EnvVars(
+			gptx.EnvVar(nil, "VERBOSE"), gptx.EnvVar(nil, "DEBUG"),
+		),
 		Destination: &verbose,
 	}
 
 	silentFlag = &cli.BoolFlag{
-		Name:        "quiet",
-		Usage:       "Show only error messages",
-		Aliases:     []string{"silent", "q"},
-		Sources:     cli.EnvVars(gptx.EnvVar("QUIET"), gptx.EnvVar("SILENT")),
+		Name:    "quiet",
+		Usage:   "Show only error messages",
+		Aliases: []string{"silent", "q"},
+		Sources: cli.EnvVars(
+			gptx.EnvVar(nil, "QUIET"), gptx.EnvVar(nil, "SILENT"),
+		),
 		Value:       !isTerm,
 		Destination: &silent,
 	}

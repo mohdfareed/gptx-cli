@@ -17,13 +17,13 @@ You behave and respond like a command line tool. Be concise.
 
 // Config is the model's configuration.
 type Config struct {
-	APIKey    string   `json:"api_key" env:"API_KEY"`
-	Model     string   `json:"model" env:"MODEL" default:"o4-mini"`
-	SysPrompt string   `json:"sys_prompt" env:"INSTRUCTIONS"`
-	Files     []string `json:"files" env:"FILES"`
-	Tools     []string `json:"tools" env:"TOOLS"`
-	Tokens    *int     `json:"max_tokens" env:"MAX_TOKENS"`
-	Temp      int      `json:"temperature" env:"TEMPERATURE" default:"1"`
+	APIKey    string   `env:"api_key"`
+	Model     string   `env:"model"`
+	SysPrompt string   `env:"sys_prompt"`
+	Files     []string `env:"files"`
+	Tools     []string `env:"tools"`
+	Tokens    *int     `env:"max_tokens"`
+	Temp      int      `env:"temperature"`
 }
 
 // MARK: Flags
@@ -35,45 +35,45 @@ func (c *Config) Flags() []cli.Flag {
 		&cli.StringFlag{
 			Name: "api-key", Usage: "Set OpenAI API key",
 			Category: CATEGORY, Destination: &c.APIKey,
-			Sources:  cli.EnvVars(EnvVar("API_KEY"), "OPENAI_API_KEY"),
+			Sources:  cli.EnvVars(EnvVar(c, "APIKey"), "OPENAI_API_KEY"),
 			Required: true,
 		},
 		&cli.StringFlag{
 			Name: "model", Usage: "Select OpenAI model to use",
 			Category: CATEGORY, Destination: &c.Model,
-			Sources: cli.EnvVars(EnvVar("MODEL")),
+			Sources: cli.EnvVars(EnvVar(c, "Model")),
 			Value:   "o4-mini",
 		},
 		&cli.StringFlag{
 			Name: "sys-prompt", Usage: "Set system prompt",
 			Category: CATEGORY, Destination: &c.SysPrompt,
-			Sources: cli.EnvVars(EnvVar("INSTRUCTIONS")),
+			Sources: cli.EnvVars(EnvVar(c, "SysPrompt")),
 			Value:   fmt.Sprintf(SYS_PROMPT, AppName), Aliases: []string{"s"},
 			TakesFile: true, Action: c.resolveSysPrompt, HideDefault: true,
 		},
 		&cli.StringSliceFlag{
 			Name: "files", Usage: "Attach files to the message",
 			Category: CATEGORY, Destination: &c.Files,
-			Sources: cli.EnvVars(EnvVar("FILES")),
+			Sources: cli.EnvVars(EnvVar(c, "Files")),
 			Value:   []string{}, Aliases: []string{"f"},
 			TakesFile: true, Action: c.resolveFiles,
 		},
 		&cli.StringSliceFlag{
 			Name: "tools", Usage: "Enable specific tools",
 			Category: CATEGORY, Destination: &c.Tools,
-			Sources: cli.EnvVars(EnvVar("TOOLS")),
+			Sources: cli.EnvVars(EnvVar(c, "Tools")),
 			Value:   []string{}, Aliases: []string{"t"},
 		},
 		&cli.IntFlag{
 			Name: "max-tokens", Usage: "Limit response length",
 			Category: CATEGORY, Destination: c.Tokens,
-			Sources:     cli.EnvVars(EnvVar("MAX_TOKENS")),
+			Sources:     cli.EnvVars(EnvVar(c, "Tokens")),
 			HideDefault: true,
 		},
 		&cli.IntFlag{
 			Name: "temp", Usage: "Set response randomness (0-100)",
 			Category: CATEGORY, Destination: &c.Temp,
-			Sources: cli.EnvVars(EnvVar("TEMPERATURE")),
+			Sources: cli.EnvVars(EnvVar(c, "Temp")),
 			Value:   1,
 		},
 	}

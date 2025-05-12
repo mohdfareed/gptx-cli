@@ -55,7 +55,7 @@ var colorizeFlag = &cli.StringFlag{
 	Name:    "color",
 	Usage:   "colorize output, one of: auto, always, never",
 	Value:   "auto",
-	Sources: cli.EnvVars(gptx.EnvVar("COLORIZE"), "NO_COLOR"),
+	Sources: cli.EnvVars(gptx.EnvVar(nil, "COLORIZE"), "NO_COLOR"),
 	Validator: func(value string) error {
 		switch value {
 		case "auto":
