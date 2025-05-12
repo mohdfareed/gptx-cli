@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/joho/godotenv"
 	"github.com/urfave/cli/v3"
 )
 
@@ -18,62 +17,61 @@ You behave and respond like a command line tool. Be concise.
 
 // Config is the model's configuration.
 type Config struct {
-	APIKey    string   `json:"api_key"`
-	Model     string   `json:"model"`
-	SysPrompt string   `json:"sys_prompt"`
-	Files     []string `json:"files"`
-	Tools     []string `json:"tools"`
-	Tokens    *int     `json:"max_tokens"`
-	Temp      int      `json:"temperature"`
+	APIKey    string   `json:"api_key" env:"API_KEY"`
+	Model     string   `json:"model" env:"MODEL" default:"o4-mini"`
+	SysPrompt string   `json:"sys_prompt" env:"INSTRUCTIONS"`
+	Files     []string `json:"files" env:"FILES"`
+	Tools     []string `json:"tools" env:"TOOLS"`
+	Tokens    *int     `json:"max_tokens" env:"MAX_TOKENS"`
+	Temp      int      `json:"temperature" env:"TEMPERATURE" default:"1"`
 }
 
-// MARK: CLI Flags & Env Vars
+// MARK: Flags
 // ============================================================================
 
 // Flags returns the CLI flags for the model configuration.
 func (c *Config) Flags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name: "api-key", Usage: "OpenAI API key",
+			Name: "api-key", Usage: "Set OpenAI API key",
 			Category: CATEGORY, Destination: &c.APIKey,
 			Sources:  cli.EnvVars(EnvVar("API_KEY"), "OPENAI_API_KEY"),
 			Required: true,
 		},
 		&cli.StringFlag{
-			Name: "model", Usage: "OpenAI model",
+			Name: "model", Usage: "Select OpenAI model to use",
 			Category: CATEGORY, Destination: &c.Model,
 			Sources: cli.EnvVars(EnvVar("MODEL")),
 			Value:   "o4-mini",
-			// Required: true,
 		},
 		&cli.StringFlag{
-			Name: "sys-prompt", Usage: "the system prompt",
+			Name: "sys-prompt", Usage: "Set system prompt",
 			Category: CATEGORY, Destination: &c.SysPrompt,
 			Sources: cli.EnvVars(EnvVar("INSTRUCTIONS")),
 			Value:   fmt.Sprintf(SYS_PROMPT, AppName), Aliases: []string{"s"},
-			TakesFile: true, Action: c.readSysPrompt, HideDefault: true,
+			TakesFile: true, Action: c.resolveSysPrompt, HideDefault: true,
 		},
 		&cli.StringSliceFlag{
-			Name: "files", Usage: "files to attach",
+			Name: "files", Usage: "Attach files to the message",
 			Category: CATEGORY, Destination: &c.Files,
 			Sources: cli.EnvVars(EnvVar("FILES")),
 			Value:   []string{}, Aliases: []string{"f"},
 			TakesFile: true, Action: c.resolveFiles,
 		},
 		&cli.StringSliceFlag{
-			Name: "tools", Usage: "tools to load",
+			Name: "tools", Usage: "Enable specific tools",
 			Category: CATEGORY, Destination: &c.Tools,
 			Sources: cli.EnvVars(EnvVar("TOOLS")),
 			Value:   []string{}, Aliases: []string{"t"},
 		},
 		&cli.IntFlag{
-			Name: "max-tokens", Usage: "max output tokens",
+			Name: "max-tokens", Usage: "Limit response length",
 			Category: CATEGORY, Destination: c.Tokens,
 			Sources:     cli.EnvVars(EnvVar("MAX_TOKENS")),
 			HideDefault: true,
 		},
 		&cli.IntFlag{
-			Name: "temp", Usage: "model temperature",
+			Name: "temp", Usage: "Set response randomness (0-100)",
 			Category: CATEGORY, Destination: &c.Temp,
 			Sources: cli.EnvVars(EnvVar("TEMPERATURE")),
 			Value:   1,
@@ -81,10 +79,12 @@ func (c *Config) Flags() []cli.Flag {
 	}
 }
 
-func (c *Config) readSysPrompt(
+// MARK: Helper Actions
+// ============================================================================
+
+func (c *Config) resolveSysPrompt(
 	ctx context.Context, cmd *cli.Command, prompt string,
 ) error {
-	println("sys-prompt:", prompt)
 	// load prompt from file if path is provided
 	if _, err := os.Stat(prompt); err == nil {
 		file, err := os.ReadFile(prompt)
@@ -110,49 +110,4 @@ func (c *Config) resolveFiles(
 	}
 	c.Files = files
 	return nil
-}
-
-// MARK: Config Files
-// ============================================================================
-
-// LoadConfigFiles loads configuration from dotenv files.
-// It searches hierarchically from the current directory up to the root,
-// following Git-like behavior for .gptx files.
-func LoadConfigFiles() {
-	godotenv.Load(ConfigFiles()...)
-}
-
-// ConfigFiles returns the paths of configuration files to load.
-// It searches for:
-// - .gptx files in the current directory and all parent directories
-// - config file in the application directory
-func ConfigFiles() []string {
-	var files []string
-
-	// Look for .gptx files in current directory and all parents (Git-like behavior)
-	for dir, err := os.Getwd(); err == nil; dir = filepath.Dir(dir) {
-		f := filepath.Join(dir, "."+AppName)
-		if _, err := os.Stat(f); err == nil {
-			files = append(files, f)
-		}
-
-		// Stop at root directory
-		if dir == filepath.Dir(dir) {
-			break
-		}
-	}
-
-	// Global application config
-	if AppDir != "" {
-		globalConfig := filepath.Join(AppDir, "config")
-		if _, err := os.Stat(globalConfig); err == nil {
-			files = append(files, globalConfig)
-		}
-	}
-
-	return files
-}
-
-func init() {
-	LoadConfigFiles()
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
 	"github.com/urfave/cli/v3"
@@ -10,6 +11,18 @@ import (
 )
 
 var isTerm bool = term.IsTerminal(int(os.Stdout.Fd()))
+
+type ExitCode int
+
+const (
+	ErrorCode ExitCode = iota
+	ConfigErrorCode
+	ModelErrorCode
+)
+
+func exit(code ExitCode) {
+	os.Exit(int(code))
+}
 
 // MARK: Colors ===============================================================
 
@@ -54,9 +67,25 @@ var colorizeFlag = &cli.StringFlag{
 		case "always":
 		default:
 			Error(fmt.Errorf("invalid color option: %s", value))
-			exit(ExitCodeError)
+			exit(ErrorCode)
 		}
 		return nil
 	},
 	ValidateDefaults: true,
+}
+
+// MARK: Configuration ========================================================
+
+// FormatKeyValue formats a key-value pair with appropriate styling.
+func FormatKeyValue(key string, value string) string {
+	quote := Y + "\"" + Reset
+
+	// Format value based on content
+	if strings.Contains(value, "\n") {
+		// Multiline values need quotes (escape existing quotes)
+		value = quote + strings.ReplaceAll(value, "\"", "\\\"") + quote
+	}
+
+	// Return the formatted key=value pair
+	return fmt.Sprintf("%s=%s", Bold+Dim+key+Reset, value+Reset)
 }

@@ -3,43 +3,56 @@ package main
 
 const (
 	// APP_DESC is the main command description
-	APP_DESC = `GPTx is a CLI app for interacting with OpenAI models.
+	APP_DESC = `Interact with OpenAI models from your terminal.
 
 Features:
-- Send messages to various OpenAI models
-- Attach files and file snippets using the tagging system
-- Configure model parameters and behavior
-- Support for multiple configuration methods (env vars, config files, flags)
-- Extensible with tools and plugins
+- Send messages to OpenAI models
+- Include file contents using the @file tag system
+- Configure model parameters
+- Use multiple configuration methods
+- Extend with tools and plugins
 
-For detailed usage instructions, run 'gptx help <command>'`
+Learn more about a command:
+    gptx help <command>`
 
 	// MSG_DESC is the description for the msg command
-	MSG_DESC = `Send a message to an OpenAI model and get a response.
+	MSG_DESC = `Send a message to an OpenAI model.
 
-You can include file contents directly in your message using tags:
-  @file(path) - Include the entire file
-  @file(path:start-end) - Include specific lines from a file
+Include file contents with tags:
+    @file(path)            Include entire file
+    @file(path:start-end)  Include specific lines
 
 Examples:
-  gptx msg "What does @file(main.go) do?"
-  gptx msg "Explain @file(pkg/gptx/config.go:10-30)"`
+    gptx msg "What does @file(main.go) do?"
+    gptx msg "Explain @file(config.go:10-30)"`
 
 	// CONFIG_DESC is the description for the config command
-	CONFIG_DESC = `Display or modify the current configuration.
+	CONFIG_DESC = `Display the configuration.
 
-The configuration is loaded from multiple sources in the following order:
-1. Default values
-2. Global config file in application directory
-3. .gptx files in the current directory and parent directories
-4. Environment variables
-5. Command-line flags`
+Configuration sources (in order of precedence):
+1. Command-line flags
+2. Environment variables
+3. .gptx files (current directory, then parents)
+4. Global config file
+5. Default values
+
+Output is in dotenv format suitable for config files.
+
+Examples:
+    # Save current configuration to a file
+    gptx config > .gptx
+
+    # Create a configuration with specific files
+    gptx --files="*.go" config > .gptx
+
+    # Create a project-specific configuration
+    gptx --model="gpt-4o" --files="project/*.go" config > project/.gptx`
 
 	// DEMO_DESC is the description for the demo command
-	DEMO_DESC = `Demonstrate the application UI and logging capabilities.
+	DEMO_DESC = `Demonstrate the UI and logging capabilities.
 
-This command shows how the application looks and feels, including:
-- Terminal colors and formatting
+Shows:
+- Terminal formatting
 - Message prefixes
-- Different logging levels`
+- Logging levels`
 )

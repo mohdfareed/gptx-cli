@@ -106,6 +106,42 @@ Uses urfave/cli with a standard structure. The main commands are:
 
 **Recommendation**: Focus on completing the msg command with actual model interaction before adding more features.
 
+## Code Organization and File Length
+
+After analyzing file sizes across the codebase, we've identified several files that exceed our target of 100 lines per file or are approaching that limit:
+
+### Files Requiring Restructuring
+
+1. **cmd/gptx/logging.go (161 lines)**
+   - Currently handling multiple responsibilities: log levels, exit codes, and formatting
+   - **Recommendation**: Split into multiple files (`exitcodes.go`, `log_format.go`, `log_output.go`)
+
+2. **cmd/gptx/editor.go (113 lines)**
+   - Combines editor flag definition, file handling, terminal prompts, and formatting
+   - **Recommendation**: Move terminal formatting to `cli.go`, create separate `prompt.go`
+
+3. **pkg/gptx/config.go (107 lines)**
+   - Contains Config struct definition and CLI flag definitions
+   - **Recommendation**: Further separate flag definitions to `flags.go`
+
+4. **pkg/gptx/serialize.go (100 lines)**
+   - At our limit with reflection-based Config serialization
+   - **Recommendation**: Evaluate if further simplification is possible
+
+5. **pkg/gptx/tags.go (97 lines)**
+   - Approaching limit, monitor for future growth
+   - **Recommendation**: Keep as is for now, but watch for opportunities to refactor
+
+### Empty Files Needing Implementation
+
+Several critical files are essentially empty (1 line) but are planned for our core features:
+
+1. **pkg/gptx/events.go** - Required for our event system
+2. **pkg/gptx/model.go** - Core model interaction
+3. **pkg/gptx/tools.go** - Tools framework implementation
+
+These should be developed according to our roadmap while maintaining our file size guidelines.
+
 ## Review Progress
 
 | Component          | Reviewed | Findings                                              | Recommendations                                         |
@@ -139,3 +175,8 @@ Uses urfave/cli with a standard structure. The main commands are:
 5. Implement chat history mechanism
    - Design simple format for storing conversations
    - Add command flags for continuing previous sessions
+
+6. Restructure oversized files to improve maintainability
+   - Split logging.go into multiple focused files
+   - Reorganize editor.go functionality
+   - Further refine config.go organization

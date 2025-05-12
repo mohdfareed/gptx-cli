@@ -11,11 +11,12 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// MARK: CLI ==================================================================
+// MARK: CLI
+// ============================================================================
 
 var editorFlag = &cli.StringFlag{
 	Name:        "editor",
-	Usage:       "the prompt editor",
+	Usage:       "Use specified text editor for input",
 	Aliases:     []string{"e"},
 	Sources:     cli.EnvVars(gptx.EnvVar("EDITOR"), "EDITOR"),
 	Destination: &editor,

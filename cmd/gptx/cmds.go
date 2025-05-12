@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
 	"github.com/urfave/cli/v3"
@@ -11,7 +12,7 @@ import (
 
 func mainCMD() *cli.Command {
 	return &cli.Command{
-		Name: gptx.AppName, Usage: "OpenAI models CLI",
+		Name: gptx.AppName, Usage: "Interact with OpenAI models",
 		Description:    APP_DESC,
 		DefaultCommand: "msg",
 	}
@@ -20,11 +21,11 @@ func mainCMD() *cli.Command {
 func msgCMD(config *gptx.Config) *cli.Command {
 	var msg string
 	return &cli.Command{
-		Name: "msg", Usage: "message an OpenAI model",
+		Name: "msg", Usage: "Send a message to a model",
 		Description: MSG_DESC,
 		Arguments: []cli.Argument{
 			&cli.StringArg{
-				Name: "message", UsageText: "the message to send",
+				Name: "message", UsageText: "Message to send",
 				Value: "hello world", Destination: &msg,
 			},
 		},
@@ -33,8 +34,8 @@ func msgCMD(config *gptx.Config) *cli.Command {
 			if err != nil {
 				return err
 			}
-			println(msg)
-			println(string(cfg))
+			fmt.Println(msg)     // outputs to stdout
+			println(string(cfg)) // print to console
 			return nil
 		},
 	}
@@ -42,21 +43,22 @@ func msgCMD(config *gptx.Config) *cli.Command {
 
 func configCMD(config *gptx.Config) *cli.Command {
 	return &cli.Command{
-		Name: "cfg", Usage: "the app's config",
+		Name: "cfg", Usage: "Show current configuration",
 		Description: CONFIG_DESC,
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			cfg := *config
-			if len(cfg.SysPrompt) > 61 {
-				cfg.SysPrompt = cfg.SysPrompt[:61-3] + "..."
-			} // truncate
-			if len(cfg.APIKey) > 65 {
-				cfg.APIKey = cfg.APIKey[:65-3] + "..."
-			} // truncate
-			data, err := json.MarshalIndent(cfg, "", "  ")
-			if err != nil {
-				return err
+			envMap := config.ToEnvMap()
+
+			// Sort keys for consistent output
+			keys := make([]string, 0, len(envMap))
+			for k := range envMap {
+				keys = append(keys, k)
 			}
-			println(string(data))
+			sort.Strings(keys)
+
+			// Print each key-value pair formatted
+			for _, key := range keys {
+				fmt.Println(FormatKeyValue(key, envMap[key]))
+			}
 			return nil
 		},
 	}
@@ -64,28 +66,17 @@ func configCMD(config *gptx.Config) *cli.Command {
 
 func demoCMD() *cli.Command {
 	return &cli.Command{
-		Name: "demo", Usage: "demo the app ui",
+		Name: "demo", Usage: "Show UI demonstration",
 		Description: DEMO_DESC,
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			modelPrefix("o4-mini", "demo-chat")
 			println("Hello, world!")
+			fmt.Println("This is a demo of the gptx CLI.")
 
-			// Show all logging levels with different types of input
-			Error("This is an error message")
-			Error(fmt.Errorf("this is an error from an error object"))
-
-			Warn("This is a warning message")
-			Warn(fmt.Errorf("this is a warning from an error object"))
-
-			Info("This is an info message")
-			Info(fmt.Errorf("this is an info from an error object"))
-
-			Debug("This is a debug message (visible with --verbose)")
-			Debug(fmt.Errorf("this is a debug from an error object (visible with --verbose)"))
-
-			// Show formatting capabilities
-			Info("You can include %s with %d parameters", "formatting", 2)
-
+			Error("this is an error message")
+			Warn("this is a warning message")
+			Info("this is an info message")
+			Debug("this is a debug message (visible with --verbose)")
 			return nil
 		},
 	}
