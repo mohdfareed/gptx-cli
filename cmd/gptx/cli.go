@@ -2,55 +2,61 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
+	"github.com/urfave/cli/v3"
+	"golang.org/x/term"
 )
 
-// MARK: Views
-// ============================================================================
+var isTerm bool = term.IsTerminal(int(os.Stdout.Fd()))
 
-// func printMsg(msg Msg) {
-// 	// msg.
-// }
+// MARK: Colors ===============================================================
 
-// MARK: Model Prefix
-// ============================================================================
+var (
+	Reset = "\033[0m"
+	Bold  = "\033[1m"
+	Dim   = "\033[2m"
+	Black = "\033[30m"
+	R     = "\033[31m"
+	G     = "\033[32m"
+	Y     = "\033[33m"
+	B     = "\033[34m"
+	M     = "\033[35m"
+	C     = "\033[36m"
+	White = "\033[37m"
+)
 
-func modelPrefix(model string, chat string) string {
-	app := Dim + gptx.AppName + Reset
-	model = Bold + G + model + Reset
-	title := Bold + B + chat + Reset
-
-	sep := Dim + "@" + Reset
-	prefix := Dim + " ~> " + Reset
-	postfix := Dim + " $ " + Reset
-
-	if chat == "" {
-		return fmt.Sprintf(
-			Bold+"%s%s%s%s"+Reset, app, sep, model, postfix,
-		)
-	} else {
-		return fmt.Sprintf(Bold+"%s%s%s%s%s%s"+Reset,
-			app, sep, model, prefix, title, postfix,
-		)
+func deColorize() {
+	colors := []*string{
+		&Reset, &Bold, &Dim, &Black, &R, &G, &Y, &B, &M, &C, &White,
+	}
+	for _, color := range colors {
+		*color = ""
 	}
 }
 
-// MARK: Logging
-// ============================================================================
+// MARK: CLI ==================================================================
 
-func doneMsg(msg string) {
-	print(Bold + G) // style success prefix
-	println(fmt.Sprintf("done: %s"+Reset, msg))
-}
-
-func errMsg(err error) {
-	print(Bold + R) // style panic prefix
-	println(fmt.Errorf("error: %w"+Reset, err).Error())
-	print(Reset) // reset style
-}
-
-func warnMsg(err error) {
-	print(Bold + Y) // style warning prefix
-	println(fmt.Errorf("warning: %w"+Reset, err).Error())
+var colorizeFlag = &cli.StringFlag{
+	Name:    "color",
+	Usage:   "colorize output, one of: auto, always, never",
+	Value:   "auto",
+	Sources: cli.EnvVars(gptx.EnvVar("COLORIZE"), "NO_COLOR"),
+	Validator: func(value string) error {
+		switch value {
+		case "auto":
+			if !(isTerm && os.Getenv("NO_COLOR") == "") {
+				deColorize()
+			}
+		case "never":
+			deColorize()
+		case "always":
+		default:
+			errMsg(fmt.Errorf("invalid color option: %s", value))
+			exit(ExitCodeError)
+		}
+		return nil
+	},
+	ValidateDefaults: true,
 }

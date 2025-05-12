@@ -16,7 +16,7 @@ type ToolDef = responses.ToolUnionParam
 // MsgUsage represents the usage information for a response message.
 type MsgUsage = responses.ResponseUsage
 
-// ModelRequest represents the model request structure.
+// ModelRequest represents a request to an OpenAI model.
 type ModelRequest = responses.ResponseNewParams
 
 // StreamParser is a parser for streaming responses from OpenAI.

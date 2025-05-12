@@ -9,39 +9,25 @@ import (
 )
 
 func main() {
-	config := gptx.DefaultConfig()
+	config := &gptx.Config{} // configuration
+	cmd := mainCMD()         // cli app
 
-	// load config files
-	err := gptx.LoadConfig()
-	if err != nil {
-		errMsg(err)
-		os.Exit(1)
-	}
+	cmd.Flags = append([]cli.Flag{
+		colorizeFlag,
+		debugFlag,
+		quietFlag,
+		editorFlag,
+	}, config.Flags()...)
 
-	// // setup tools
-	// tools := gptx.ModelTools{
-	// 	config: config,
-	// 	tools: map[gptx.Tool]gptx.ModelTool{
-	// 		openai.WebSearchTool.Name: WebSearchTool,
-	// 	},
-	// }
-
-	// // create model
-	// model := gptx.CreateModel(config, tools)
-
-	// commands
-	cmd := mainCMD()
 	cmd.Commands = []*cli.Command{
-		// validateCMD(&model),
+		msgCMD(config),
 		configCMD(config),
-		usageCMD(config),
 		demoCMD(),
 	}
-	cmd.EnableShellCompletion = true
 
 	// run the app
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
 		errMsg(err)
-		os.Exit(1)
+		exit(ExitCodeError)
 	}
 }

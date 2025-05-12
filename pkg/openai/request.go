@@ -10,21 +10,25 @@ import (
 func NewRequest(
 	model shared.ChatModel,
 	instructs string, msgs []MsgData, tools []ToolDef,
-	maxTokens int64, temp float64, reasoning shared.ReasoningEffort,
+	maxTokens *int64, temp float64, reasoning shared.ReasoningEffort,
 	userID string,
 ) ModelRequest {
 	history := responses.ResponseNewParamsInputUnion{OfInputItemList: msgs}
 	data := responses.ResponseNewParams{
-		Model:           model,
-		Input:           history,
-		Tools:           tools,
-		Instructions:    param.Opt[string]{Value: instructs},
-		MaxOutputTokens: param.Opt[int64]{Value: maxTokens},
-		Temperature:     param.Opt[float64]{Value: temp},
-		User:            param.Opt[string]{Value: userID},
+		Model:        model,
+		Input:        history,
+		Tools:        tools,
+		Instructions: param.Opt[string]{Value: instructs},
+		Temperature:  param.Opt[float64]{Value: temp},
+		User:         param.Opt[string]{Value: userID},
 		// defaults
 		Store:             param.Opt[bool]{Value: false},
 		ParallelToolCalls: param.Opt[bool]{Value: true},
+	}
+
+	// max tokens
+	if maxTokens != nil {
+		data.MaxOutputTokens = param.Opt[int64]{Value: *maxTokens}
 	}
 
 	// reasoning

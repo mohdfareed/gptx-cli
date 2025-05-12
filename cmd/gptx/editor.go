@@ -8,41 +8,37 @@ import (
 	"strings"
 
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
+	"github.com/urfave/cli/v3"
 )
+
+// MARK: CLI ==================================================================
+
+var editorFlag = &cli.StringFlag{
+	Name:        "editor",
+	Usage:       "the prompt editor",
+	Aliases:     []string{"e"},
+	Sources:     cli.EnvVars(gptx.EnvVar("EDITOR"), "EDITOR"),
+	Destination: &editor,
+}
+var editor string
 
 // MARK: Prompt
 // ============================================================================
 
 // PromptUser gets user message. Input is retrieved in the following order:
 // user input -> editor -> terminal
-func PromptUser(
-	config gptx.Config, msgs []string, editor string) (string, error) {
-	var prompt string
+func PromptUser(config gptx.Config, args []string) (string, error) {
+	var msg string
 	var err error
 
-	if len(msgs) > 0 { // user input provided
-		prompt = strings.Join(msgs, " ")
+	if len(args) > 0 { // user input provided
+		msg = strings.Join(args, " ")
 	} else if editor != "" { // editor specified
-		prompt, err = editorPrompt(editor)
-	} else {
-		prompt, err = terminalPrompt(config)
+		msg, err = editorPrompt(editor)
+	} else if isTerm { // running in terminal
+		msg, err = terminalPrompt(config)
 	}
-	return strings.TrimSpace(prompt), err
-}
-
-// MARK: Terminal
-// ============================================================================
-
-func terminalPrompt(config gptx.Config) (string, error) {
-	reader := bufio.NewReader(os.Stdin)
-	print(modelPrefix(config.Model, ""))
-
-	prompt, err := reader.ReadString('\n')
-	if err != nil {
-		println("Error reading prompt:", err)
-		return prompt, err
-	} // FIXME: handle shift-enter
-	return prompt, nil
+	return strings.TrimSpace(msg), err
 }
 
 // MARK: Editor
@@ -53,7 +49,7 @@ func editorPrompt(editor string) (string, error) {
 	tmpDir := os.TempDir()
 	tmp, err := os.CreateTemp(tmpDir, "chat-input-*.md")
 	if err != nil {
-		return "", fmt.Errorf("creating temp file: %w", err)
+		return "", fmt.Errorf("editor temp file: %w", err)
 	}
 	defer os.Remove(tmp.Name())
 
@@ -63,13 +59,44 @@ func editorPrompt(editor string) (string, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("running editor %q: %w", editor, err)
+		return "", fmt.Errorf("editor %q: %w", editor, err)
 	}
 
 	// read the edited prompt
 	raw, err := os.ReadFile(tmp.Name())
 	if err != nil {
-		return "", fmt.Errorf("reading temp file: %w", err)
+		return "", fmt.Errorf("editor temp file: %w", err)
 	}
 	return strings.TrimSpace(string(raw)), nil
+}
+
+// MARK: Terminal
+// ============================================================================
+
+func terminalPrompt(config gptx.Config) (string, error) {
+	modelPrefix(config.Model, "")
+	scanner := bufio.NewScanner(os.Stdin)
+	var lines []string
+	for scanner.Scan() {
+		line := scanner.Text()
+		lines = append(lines, line)
+	}
+	prompt := strings.Join(lines, "\n")
+	return prompt, nil
+}
+
+func modelPrefix(model string, chat string) {
+	app := Dim + gptx.AppName + Reset
+	model = Bold + G + model + Reset
+	title := Bold + B + chat + Reset
+
+	sep := Dim + "@" + Reset
+	prefix := Dim + " ~> " + Reset
+	postfix := Dim + " $ " + Reset
+
+	if chat != "" {
+		fmt.Fprint(os.Stderr, app+sep+model+prefix+title+postfix)
+	} else {
+		fmt.Fprint(os.Stderr, app+sep+model+postfix)
+	}
 }

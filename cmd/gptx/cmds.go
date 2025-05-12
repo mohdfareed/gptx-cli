@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
 	"github.com/urfave/cli/v3"
@@ -12,63 +11,65 @@ import (
 
 func mainCMD() *cli.Command {
 	return &cli.Command{
-		Name:  gptx.AppName,
-		Usage: "message an OpenAI model",
-		Flags: []cli.Flag{
-			colorizeFlag,
-			// &cli.StringFlag{
-			// 	Name:    "editor",
-			// 	Aliases: []string{"e"},
-			// 	Usage:   "the prompt editor",
-			// },
-			// &cli.BoolFlag{
-			// 	Name:    "stream",
-			// 	Aliases: []string{"s"},
-			// 	Usage:   "stream the model's response",
-			// 	Value:   true,
-			// },
-		},
+		Name: gptx.AppName, Usage: "OpenAI models CLI",
+		DefaultCommand: "msg",
 	}
 }
 
-func configCMD(config gptx.Config) *cli.Command {
+func msgCMD(config *gptx.Config) *cli.Command {
+	var msg string
 	return &cli.Command{
-		Name:  "config",
-		Usage: "the app's config",
+		Name: "msg", Usage: "message an OpenAI model",
+		Arguments: []cli.Argument{
+			&cli.StringArg{
+				Name: "message", UsageText: "the message to send",
+				Value: "hello world", Destination: &msg,
+			},
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			data, err := json.MarshalIndent(config, "", "  ")
+			cfg, err := json.MarshalIndent(config, "", "  ")
 			if err != nil {
 				return err
 			}
-			json := string(data)
-
-			fmt.Println(json)
+			println(msg)
+			println(string(cfg))
 			return nil
 		},
 	}
 }
 
-// MARK: CLI
-// ============================================================================
-
-func usageCMD(config gptx.Config) *cli.Command {
-	printRow := func(key string, value string) {
-		println(Dim + key + Reset + " " + Bold + value + Reset)
-	}
-
+func configCMD(config *gptx.Config) *cli.Command {
 	return &cli.Command{
-		Name: "usage", Usage: "show the tokens usage",
+		Name: "cfg", Usage: "the app's config",
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			usage, err := gptx.GetUsage()
+			cfg := *config
+			if len(cfg.SysPrompt) > 61 {
+				cfg.SysPrompt = cfg.SysPrompt[:61-3] + "..."
+			} // truncate
+			if len(cfg.APIKey) > 65 {
+				cfg.APIKey = cfg.APIKey[:65-3] + "..."
+			} // truncate
+			data, err := json.MarshalIndent(cfg, "", "  ")
 			if err != nil {
 				return err
 			}
-			total := usage.InputTokens + usage.OutputTokens
+			println(string(data))
+			return nil
+		},
+	}
+}
 
-			println(Bold + "usage:" + Reset + gptx.UsagePath)
-			printRow(R+" input:"+Reset, strconv.Itoa(int(usage.InputTokens)))
-			printRow(G+"output:"+Reset, strconv.Itoa(int(usage.OutputTokens)))
-			printRow(B+" total:"+Reset, strconv.Itoa(int(total)))
+func demoCMD() *cli.Command {
+	return &cli.Command{
+		Name: "demo", Usage: "demo the app ui",
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			modelPrefix("o4-mini", "demo-chat")
+			println("Hello, world!")
+
+			errMsg(fmt.Errorf("an error message"))
+			warnMsg(fmt.Errorf("a warning message"))
+			infoMsg(fmt.Errorf("an info message"))
+			debugMsg(fmt.Errorf("a debug message"))
 			return nil
 		},
 	}
