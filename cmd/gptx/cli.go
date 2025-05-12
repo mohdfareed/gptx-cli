@@ -79,13 +79,13 @@ var colorizeFlag = &cli.StringFlag{
 // FormatKeyValue formats a key-value pair with appropriate styling.
 func FormatKeyValue(key string, value string) string {
 	quote := Y + "\"" + Reset
+	equal := M + "=" + Reset
+	keyName := Bold + Dim + key + Reset
 
 	// Format value based on content
 	if strings.Contains(value, "\n") {
 		// Multiline values need quotes (escape existing quotes)
 		value = quote + strings.ReplaceAll(value, "\"", "\\\"") + quote
 	}
-
-	// Return the formatted key=value pair
-	return fmt.Sprintf("%s=%s", Bold+Dim+key+Reset, value+Reset)
+	return keyName + equal + value
 }

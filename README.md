@@ -73,5 +73,4 @@ The application follows a clean separation of concerns:
   - [ ] Web search
   - [ ] Shell commands
   - [ ] Custom user tools
-- [ ] Implement session history
-- [ ] Add tool execution lifecycle events
+- [ ] Implement chat history
