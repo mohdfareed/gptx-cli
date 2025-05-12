@@ -17,6 +17,11 @@ It allows you to interact with any GPT model directly from the terminal.
     - `@file(path)` - Include the entire file
     - `@file(path:start-end)` - Include specific lines from a file
 
+- **Event System**
+  - Simple channel-based event system for model interaction
+  - Events for model responses, tool requests, and completions
+  - Easy integration with custom handlers and UI components
+
 - **Editor Support**
   - Use your favorite editor for writing prompts with `--editor`
   - Supports standard `EDITOR` environment variable
@@ -47,15 +52,26 @@ gptx --files="project/*.go" config > project/.gptx
 gptx config
 ```
 
+## Architecture
+
+The application follows a clean separation of concerns:
+
+- **CLI layer** (`cmd/gptx/`): User-facing commands and flags
+- **Core logic** (`pkg/gptx/`): Business logic, configuration, and events
+- **OpenAI API** (`pkg/openai/`): Thin abstraction over the OpenAI Responses API
+
 ## References
 
 - https://go.dev/doc
 - https://github.com/openai/openai-go
 - https://cli.urfave.org/v3
 
-## TODO
+## Roadmap
 
-- Support custom model tools
-  - Web search
-  - Shell commands
-- Implement session history
+- [ ] Complete model interaction through the `msg` command
+- [ ] Support model tools
+  - [ ] Web search
+  - [ ] Shell commands
+  - [ ] Custom user tools
+- [ ] Implement session history
+- [ ] Add tool execution lifecycle events
