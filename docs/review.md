@@ -10,30 +10,33 @@ This document tracks our ongoing code review and simplification efforts for the 
 - **Core logic** (`pkg/gptx/`): Business logic and configuration
 - **OpenAI API** (`pkg/openai/`): Thin abstraction over the OpenAI API
 
-## Progress Update (May 12, 2025)
+## Progress Update (May 13, 2025)
 
-We've made significant progress in refining the core architecture and implementing key components:
+We've continued to make progress on the core architecture and implemented more key components:
 
-1. **Configuration System**
-   - Refined the environment variable handling using struct field tags
-   - Improved serialization for consistent env variable naming
-   - Maintained hierarchical config file loading for Git-like experience
-
-2. **Events System**
+1. **Events System**
    - Implemented a minimal, channel-based event system
-   - Focused on core lifecycle events: prompt, response, completion
-   - Added tool execution events for extensibility
-   - Followed Go idioms with direct channels rather than complex abstractions
+   - Defined core lifecycle events: start, reply, tool usage, completion, and error
+   - Added non-blocking emission pattern with context support
+   - Followed Go idioms with direct channels and minimal structures
 
-3. **File Tagging**
-   - Reviewed the file tagging implementation and confirmed its elegance
-   - Tag system allows for inline file references with line range specifications
+2. **Model Interaction**
+   - Implemented the core model interaction logic
+   - Added support for file attachments
+   - Integrated with the event system for lifecycle events
+   - Added proper error handling with context
+
+3. **Tools Framework**
+   - Implemented support for built-in tools (web search, shell execution)
+   - Added extensibility for custom tools defined as shell commands
+   - Integrated with the events system for tool lifecycle events
+   - Used a clean interface for tool registration and execution
 
 ## Initial Observations
 
 - Configuration system uses multiple layers (env vars, config files, CLI flags)
 - Event system has been implemented with a minimalist channel-based approach
-- Tools framework has minimal implementation so far
+- Tools framework now has a complete implementation
 - File attachment handling is implemented with a clean tagging system
 - CLI structure follows urfave/cli patterns with commands for messaging, config display, and demo UI
 
@@ -41,7 +44,7 @@ We've made significant progress in refining the core architecture and implementi
 
 - [x] Configuration complexity (multiple sources: env vars, config files in multiple locations, CLI flags)
 - [x] Events system necessity and implementation
-- [ ] Tools framework approach (current implementation is minimal)
+- [x] Tools framework approach
 - [x] File attachment handling with tagging system
 - [ ] Error handling patterns
 - [ ] CLI command structure
@@ -59,14 +62,19 @@ We've made significant progress in refining the core architecture and implementi
    - **Implementation**: Direct Go channels with minimal structures for the core lifecycle events
    - **Benefit**: Simple, idiomatic Go approach without unnecessary abstractions
 
-3. **File Attachments**:
+3. **Tools Framework**:
+   - **Decision**: Implemented a clean interface for tool definition and execution
+   - **Implementation**: Used function callbacks registered with the model for tool execution
+   - **Benefit**: Extensible system that supports both built-in and custom tools
+
+4. **File Attachments**:
    - **Decision**: Maintained the current tagging approach
    - **Implementation**: Regex-based tag processing for inline file references
    - **Benefit**: Elegant user experience for file inclusion
 
 ## Model Interaction Lifecycle
 
-We've defined a clear model interaction lifecycle with these phases:
+We've implemented a clear model interaction lifecycle with these phases:
 
 1. **Prompt**: User provides input, possibly with file tags
 2. **Response**: Model generates streaming text chunks
@@ -93,11 +101,21 @@ Configuration is loaded from multiple sources with a consistent naming scheme. T
 The events system has been implemented with a focus on simplicity:
 
 - Direct Go channels for each event type
-- Minimal structures for tool-related events
-- Non-blocking pattern for event emission
+- Minimal structures for each event type with relevant payload data
+- Non-blocking pattern for event emission with context support
 - Clean separation between event producers and consumers
 
-**Implementation**: A focused `Events` struct with channels for each key event in the model lifecycle.
+**Implementation**: A focused `Events` struct with channels for each key event in the model lifecycle, and a generic `Emit` function for non-blocking event emission.
+
+### Tools Framework
+The tools framework has been implemented with flexibility in mind:
+
+- Support for built-in tools (web search, shell execution)
+- Extensibility for custom tools defined as shell commands
+- Integration with the events system for tool lifecycle events
+- Clean interface for tool registration and execution
+
+**Implementation**: Tool registration pattern using callbacks, integrated with the events system for lifecycle events.
 
 ### File Context & Tagging System
 The tagging system (`@file(path:start-end)`) continues to provide:
@@ -116,37 +134,28 @@ The OpenAI integration is well-structured with:
 
 ## Next Steps
 
-1. **Complete Model Interaction**
-   - Implement the core model interaction in the `msg` command
+1. **CLI Implementation**
+   - Implement the `msg` command to use the model interaction logic
+   - Add support for tool execution in the CLI
    - Connect events system to the UI for response streaming
 
-2. **Tools Framework**
-   - Design and implement a clean interface for tool execution
-   - Start with basic web search and shell command tools
-   - Integrate with the events system for lifecycle management
-
-3. **Error Handling**
+2. **Error Handling**
    - Implement consistent error handling throughout the application
    - Add proper context to errors with wrapping
 
-4. **CLI Polish**
-   - Complete the command implementation
-   - Add proper help text and examples
-   - Ensure consistent user experience
-
-5. **Documentation**
+3. **Documentation**
    - Update CLI help text with examples
    - Ensure README reflects current capabilities
    - Add developer documentation for extensibility
 
 ## Review Progress
 
-| Component          | Reviewed | Implemented | Notes                                                     |
-| ------------------ | -------- | ----------- | --------------------------------------------------------- |
-| Configuration      | ✅        | ✅           | Refined with consistent naming and hierarchical loading   |
-| Events System      | ✅        | ✅           | Implemented with minimal, channel-based approach          |
-| OpenAI Integration | ✅        | ⚠️ Partial   | File handling complete, model interaction needs finishing |
-| Tools Framework    | ✅        | ❌           | Design established, implementation pending                |
-| File Handling      | ✅        | ✅           | Tag system provides elegant inline references             |
-| CLI Implementation | ✅        | ⚠️ Partial   | Basic commands set up, msg command needs completion       |
-| Documentation      | ✅        | ⚠️ Partial   | README updated, CLI help needs improvement                |
+| Component          | Reviewed | Implemented | Notes                                                   |
+| ------------------ | -------- | ----------- | ------------------------------------------------------- |
+| Configuration      | ✅        | ✅           | Refined with consistent naming and hierarchical loading |
+| Events System      | ✅        | ✅           | Implemented with minimal, channel-based approach        |
+| OpenAI Integration | ✅        | ✅           | File handling and model interaction implemented         |
+| Tools Framework    | ✅        | ✅           | Implemented with support for built-in and custom tools  |
+| File Handling      | ✅        | ✅           | Tag system provides elegant inline references           |
+| CLI Implementation | ✅        | ⚠️ Partial   | Basic commands set up, msg command needs completion     |
+| Documentation      | ✅        | ⚠️ Partial   | README updated, CLI help needs improvement              |

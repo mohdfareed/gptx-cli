@@ -107,8 +107,8 @@ func modelPrefix(model string, chat string) {
 	postfix := Dim + " $ " + Reset
 
 	if chat != "" {
-		fmt.Fprint(os.Stderr, app+sep+model+prefix+title+postfix)
+		PrintErr(app + sep + model + prefix + title + postfix)
 	} else {
-		fmt.Fprint(os.Stderr, app+sep+model+postfix)
+		PrintErr(app + sep + model + postfix)
 	}
 }

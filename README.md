@@ -9,18 +9,23 @@ It allows you to interact with any GPT model directly from the terminal.
   - Git-like `.gptx` files in current directory and parent directories
   - Global config in application directory
   - Configuration via environment variables and CLI flags
-  - Export configurations in dotenv format for easy sharing and reuse
+  - Easy to share configurations between projects
 
 - **File Integration**
-  - Attach entire files via `--files` flag
+  - Attach entire files via `--files` flag with glob pattern support
   - Include file snippets directly in your prompts with tags:
     - `@file(path)` - Include the entire file
     - `@file(path:start-end)` - Include specific lines from a file
 
 - **Event System**
   - Simple channel-based event system for model interaction
-  - Events for model responses, tool requests, and completions
-  - Easy integration with custom handlers and UI components
+  - Events for model responses, tool usage, and completions
+  - See what the model is doing in real-time
+
+- **Tools Support**
+  - Built-in tools for web search and shell commands
+  - Custom tool support via shell scripts
+  - Event emissions for tool usage and results
 
 - **Editor Support**
   - Use your favorite editor for writing prompts with `--editor`
@@ -38,18 +43,14 @@ Attach multiple files:
 gptx --files="*.go" msg "Explain this codebase"
 ```
 
-Save your configuration to a file:
+Use tools:
 ```
-gptx --model="gpt-4o" --files="main.go,helper.go" config > .gptx
+gptx --tools="shell,web_search" msg "Find all files in the current directory and summarize them"
 ```
 
-Share configurations between projects:
+View current configuration:
 ```
-# Create a project-specific config
-gptx --files="project/*.go" config > project/.gptx
-
-# View current effective configuration
-gptx config
+gptx cfg
 ```
 
 ## Architecture
@@ -60,17 +61,33 @@ The application follows a clean separation of concerns:
 - **Core logic** (`pkg/gptx/`): Business logic, configuration, and events
 - **OpenAI API** (`pkg/openai/`): Thin abstraction over the OpenAI Responses API
 
+## Installation
+
+```
+go install github.com/mohdfareed/chatgpt-cli/cmd/gptx@latest
+```
+
+Or clone and build from source:
+
+```
+git clone https://github.com/mohdfareed/chatgpt-cli.git
+cd chatgpt-cli
+go build -o gptx ./cmd/gptx
+```
+
 ## References
 
-- https://go.dev/doc
-- https://github.com/openai/openai-go
-- https://cli.urfave.org/v3
+- [Go Documentation](https://go.dev/doc)
+- [OpenAI Go SDK](https://github.com/openai/openai-go)
+- [CLI Framework](https://cli.urfave.org/v3)
 
 ## Roadmap
 
-- [ ] Complete model interaction through the `msg` command
-- [ ] Support model tools
-  - [ ] Web search
-  - [ ] Shell commands
-  - [ ] Custom user tools
+- [x] Complete model interaction through the `msg` command
+- [x] Support model tools
+  - [x] Web search
+  - [x] Shell commands
+  - [x] Custom user tools
 - [ ] Implement chat history
+- [ ] Support for image attachments
+- [ ] Conversation management with stateful sessions

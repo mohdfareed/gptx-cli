@@ -19,6 +19,18 @@ var (
 	debugMsgStr = Bold + M + "debug: " + Reset + "%s\n"
 )
 
+// Print logs a message to stdout.
+// Accepts both string format with args or an error object.
+func Print(msg any, args ...any) {
+	fmt.Fprintf(os.Stdout, "%s", logMsg(msg, args))
+}
+
+// Print logs a message to stderr.
+// Accepts both string format with args or an error object.
+func PrintErr(msg any, args ...any) {
+	fmt.Fprintf(os.Stderr, "%s", logMsg(msg, args))
+}
+
 // Error logs an error message. These are always displayed.
 // Accepts both string format with args or an error object.
 func Error(msg any, args ...any) {
@@ -97,7 +109,7 @@ func logMsg(msg any, args []any) string {
 	case string:
 		text = fmt.Sprintf(m, args...)
 	default:
-		text = fmt.Sprint(msg)
+		text = fmt.Sprint(msg, args)
 	}
 	return text
 }

@@ -9,7 +9,10 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// CATEGORY is the category for configuration flags.
 const CATEGORY = "model config"
+
+// SYS_PROMPT is the default system prompt template.
 const SYS_PROMPT string = `
 You are '%s', a CLI app. You are an extension of the command line.
 You behave and respond like a command line tool. Be concise.

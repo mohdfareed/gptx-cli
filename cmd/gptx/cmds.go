@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
@@ -30,12 +30,25 @@ func msgCMD(config *gptx.Config) *cli.Command {
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			cfg, err := json.MarshalIndent(config, "", "  ")
-			if err != nil {
-				return err
+			// Create the model
+			model := gptx.NewModel(config)
+			for event := range model.Events.Channel {
+				printModelEvent(event)
 			}
-			fmt.Println(msg)     // outputs to stdout
-			println(string(cfg)) // print to console
+			println() // Add newline after response
+
+			// Listen for events
+			go func(event *gptx.Event) {
+				for event := range event.Channel {
+					printModelEvent(event)
+				}
+			}(model.Events)
+
+			// Send the message
+			err := model.Message(ctx, msg, os.Stdout)
+			if err != nil {
+				return fmt.Errorf("model: %w", err)
+			}
 			return nil
 		},
 	}
@@ -46,18 +59,27 @@ func configCMD(config *gptx.Config) *cli.Command {
 		Name: "cfg", Usage: "Show current configuration",
 		Description: CONFIG_DESC,
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			envMap := config.ToEnvMap()
+			// Convert config to a map for display
+			configMap := config.ToEnvMap()
+			configMap["API Key"] = maskAPIKey(config.APIKey)
+			configMap["System Prompt"] = shortenText(config.SysPrompt, 40)
 
 			// Sort keys for consistent output
-			keys := make([]string, 0, len(envMap))
-			for k := range envMap {
+			keys := make([]string, 0, len(configMap))
+			for k := range configMap {
 				keys = append(keys, k)
 			}
 			sort.Strings(keys)
 
-			// Print each key-value pair formatted
+			// Print each key-value pair
 			for _, key := range keys {
-				fmt.Println(FormatKeyValue(key, envMap[key]))
+				Print(formatKeyValue(key, configMap[key]) + "\n")
+			}
+
+			// Show source files
+			PrintErr("\nConfiguration Files:\n")
+			for _, file := range gptx.ConfigFiles() {
+				PrintErr("- %s\n", file)
 			}
 			return nil
 		},
@@ -70,8 +92,8 @@ func demoCMD() *cli.Command {
 		Description: DEMO_DESC,
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			modelPrefix("o4-mini", "demo-chat")
-			println("Hello, world!")
-			fmt.Println("This is a demo of the gptx CLI.")
+			Print("Hello, world!\n")
+			Print("This is a demo of the gptx CLI.\n")
 
 			Error("this is an error message")
 			Warn("this is a warning message")

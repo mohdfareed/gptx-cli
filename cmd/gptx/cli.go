@@ -76,8 +76,7 @@ var colorizeFlag = &cli.StringFlag{
 
 // MARK: Configuration ========================================================
 
-// FormatKeyValue formats a key-value pair with appropriate styling.
-func FormatKeyValue(key string, value string) string {
+func formatKeyValue(key string, value string) string {
 	quote := Y + "\"" + Reset
 	equal := M + "=" + Reset
 	keyName := Bold + Dim + key + Reset
@@ -88,4 +87,34 @@ func FormatKeyValue(key string, value string) string {
 		value = quote + strings.ReplaceAll(value, "\"", "\\\"") + quote
 	}
 	return keyName + equal + value
+}
+
+func maskAPIKey(key string) string {
+	if len(key) > 8 {
+		return key[:4] + "..." + key[len(key)-4:]
+	}
+	return key
+}
+
+func shortenText(text string, maxLen int) string {
+	text = strings.ReplaceAll(text, "\n", " ")
+	if len(text) <= maxLen {
+		return text
+	}
+	return text[:maxLen-3] + "..."
+}
+
+func printModelEvent(payload gptx.Payload) {
+	switch payload.Type {
+	case gptx.EventStart:
+		Debug("Model started")
+	case gptx.EventTool:
+		Info(payload.Data)
+	case gptx.EventReply:
+		Print(payload.Data)
+	case gptx.EventError:
+		Error(payload.Data)
+	case gptx.EventComplete:
+		Debug("Model done")
+	}
 }

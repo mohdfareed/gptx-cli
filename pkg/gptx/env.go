@@ -13,7 +13,7 @@ import (
 // AppName is the name of the application.
 const AppName string = "gptx"
 
-// AppDir is the directory where the application configuration files are stored.
+// AppDir is the directory where application configuration files are stored.
 var AppDir string = func() string {
 	configDir, _ := os.UserConfigDir()
 	if configDir == "" {
@@ -22,9 +22,8 @@ var AppDir string = func() string {
 	return filepath.Join(configDir, AppName)
 }()
 
-// EnvVar returns the environment variable name for a given key.
-// If the key is a struct field (using reflection), it will use the json tag.
-// Otherwise, it treats the input as a direct key.
+// EnvVar returns the environment variable name for a given field.
+// It uses the struct field's "env" tag or the field name.
 func EnvVar(obj *Config, field string) string {
 	var tag string
 	if obj != nil {
@@ -32,41 +31,36 @@ func EnvVar(obj *Config, field string) string {
 		t := reflect.TypeOf(*obj)
 		f, found := t.FieldByName(field)
 		if !found {
-			panic(fmt.Sprintf("field '%s' not found in type '%T'", field, obj))
+			panic(fmt.Sprintf("field '%s' not found in type Config", field))
 		}
 		tag = f.Tag.Get("env")
 	} else {
-		tag = field // If obj is nil, use the field name directly
+		tag = field // Use the field name directly
 	}
 
-	// Format with app name prefix
+	// Format as GPTX_FIELD_NAME
 	prefix := strings.ToUpper(AppName)
 	postfix := strings.ToUpper(tag)
 	return fmt.Sprintf("%s_%s", prefix, postfix)
 }
 
-// MARK: Config Files
-// ============================================================================
-
-// LoadConfigFiles loads configuration from dotenv files.
-// It searches hierarchically from the current directory up to the root,
-// following Git-like behavior for .gptx files.
+// LoadConfigFiles loads configuration from .gptx files.
+// Searches for files in:
+// 1. Current directory and all parent directories
+// 2. User's config directory
 func LoadConfigFiles() {
 	godotenv.Load(ConfigFiles()...)
 }
 
-// ConfigFiles returns the paths of configuration files to load.
-// It searches for:
-// - .gptx files in the current directory and all parent directories
-// - config file in the application directory
+// ConfigFiles returns paths to all relevant configuration files.
 func ConfigFiles() []string {
 	var files []string
 
-	// Look for .gptx files in current directory and all parents
+	// Look for .gptx files in current directory and parent directories
 	for dir, err := os.Getwd(); err == nil; dir = filepath.Dir(dir) {
-		f := filepath.Join(dir, "."+AppName)
-		if _, err := os.Stat(f); err == nil {
-			files = append(files, f)
+		configFile := filepath.Join(dir, "."+AppName)
+		if _, err := os.Stat(configFile); err == nil {
+			files = append(files, configFile)
 		}
 
 		// Stop at root directory
@@ -75,7 +69,7 @@ func ConfigFiles() []string {
 		}
 	}
 
-	// Global application config
+	// Add global config if it exists
 	if AppDir != "" {
 		globalConfig := filepath.Join(AppDir, "config")
 		if _, err := os.Stat(globalConfig); err == nil {
@@ -86,6 +80,7 @@ func ConfigFiles() []string {
 	return files
 }
 
+// Auto-load configuration
 func init() {
 	LoadConfigFiles()
 }

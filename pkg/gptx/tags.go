@@ -52,10 +52,12 @@ var fileRegex = regexp.MustCompile(fileTagRegex)
 func fileTag(args string) (string, error) {
 	// parse the file tag
 	match := fileRegex.FindStringSubmatch(args)
+	var path string
 	if len(match) == 0 {
-		return "", fmt.Errorf("invalid file: %q", args)
+		path = match[0]
+	} else {
+		path = match[1]
 	}
-	path := match[1]
 
 	// read the file
 	data, err := os.ReadFile(path)
@@ -66,7 +68,7 @@ func fileTag(args string) (string, error) {
 	id := path
 
 	// parse the start and end lines
-	if len(match[2]) > 0 && len(match[3]) > 0 {
+	if len(match) == 4 {
 		start, err := strconv.Atoi(match[2])
 		if err != nil {
 			return "", fmt.Errorf("file tag: %w", err)
@@ -75,12 +77,16 @@ func fileTag(args string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("file tag: %w", err)
 		}
+
+		// validate the start and end lines
 		if start < 0 || end < 0 || start > end {
 			return "", fmt.Errorf("file tag: %d-%d", start, end)
 		}
 		if start > len(file) {
 			return "", fmt.Errorf("file tag: start line %d out of range", start)
 		}
+
+		// slice the file content
 		endLine := end
 		if endLine > len(file) {
 			endLine = len(file)

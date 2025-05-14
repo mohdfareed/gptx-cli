@@ -29,7 +29,7 @@ func (c *Config) ToEnvMap() map[string]string {
 		envKey := EnvVar(c, key)
 
 		// Convert the value to a string
-		var strValue string
+		var strValue string // REVIEW: is fmt.Sprintf("%v", v) enough?
 		switch v := value.(type) {
 		case string:
 			strValue = v
@@ -39,6 +39,10 @@ func (c *Config) ToEnvMap() map[string]string {
 			strValue = strconv.Itoa(v)
 		case float64:
 			strValue = strconv.FormatFloat(v, 'f', -1, 64)
+		default:
+			strValue = fmt.Sprintf("%v", v) // Fallback to default string conversion
+
+		// Handle slice types
 		case []any:
 			strSlice := make([]string, len(v))
 			for i, item := range v {
