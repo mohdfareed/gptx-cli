@@ -1,326 +1,365 @@
+// Package openai provides an OpenAI-specific client for the GPTx CLI
 package openai
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"os"
 	"strings"
+
+	"github.com/mohdfareed/gptx-cli/pkg/gptx"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/packages/param"
+	"github.com/openai/openai-go/responses"
+	"github.com/openai/openai-go/shared"
 )
 
-// TODO: validate model against [responses.ChatModel]
-
-// Client represents an OpenAI API client
+// Client implements the gptx.Client interface using the OpenAI API
 type Client struct {
-	APIKey string
+	client openai.Client
 }
 
-// Message represents a chat message
-type Message struct {
-	Role    string // "system", "user", "assistant"
-	Content string
+// responseEvent implements the gptx.ResponseEvent interface
+type responseEvent struct {
+	eventType  string
+	content    string
+	toolCall   *gptx.ToolCall
+	streamData *responses.ResponseStreamingResponseParam
 }
 
-// FileAttachment represents a file attached to a message
-type FileAttachment struct {
-	Path    string
-	Content string
+// responseStream implements the gptx.ResponseStream interface
+type responseStream struct {
+	stream       *responses.ResponseStreamingResponseIterator
+	client       *Client
+	currentEvent *responseEvent
 }
 
-// Tool represents a tool definition
-type Tool struct {
-	Type        string // "function" or "web_search"
-	Name        string
-	Description string
-	Parameters  map[string]any
+// New creates a new OpenAI client
+func New(apiKey string, organizationID string) *Client {
+	// Create the OpenAI client
+	client := openai.NewClient(apiKey)
+
+	// Set organization ID if provided
+	if organizationID != "" {
+		client = client.WithOrganization(organizationID)
+	}
+
+	return &Client{
+		client: client,
+	}
 }
 
-// ModelRequest represents a request to the OpenAI API
-type ModelRequest struct {
-	Model       string
-	Messages    []Message
-	Files       []FileAttachment
-	Tools       []Tool
-	Temperature float32
-	MaxTokens   int
-}
-
-// ToolCall represents a tool call from the model
-type ToolCall struct {
-	ID         string
-	Name       string
-	Parameters json.RawMessage
-}
-
-// StreamResponse provides channels for streaming response content
-type StreamResponse struct {
-	Text      chan string
-	ToolCalls chan ToolCall
-	Done      chan struct{}
-}
-
-// Generate sends a request to OpenAI and returns a streaming response
-func (c *Client) Generate(ctx context.Context, req ModelRequest) (*StreamResponse, error) {
-	// Create stream channels
-	stream := &StreamResponse{
-		Text:      make(chan string, 10),
-		ToolCalls: make(chan ToolCall, 5),
-		Done:      make(chan struct{}),
-	}
-
-	// Prepare the request body
-	apiReq := map[string]interface{}{
-		"model": req.Model,
-	}
-
-	// Add messages
-	var messages []map[string]interface{}
-	for _, msg := range req.Messages {
-		messages = append(messages, map[string]interface{}{
-			"role":    msg.Role,
-			"content": msg.Content,
-		})
-	}
-	apiReq["messages"] = messages
-
-	// Add file content to the last user message if needed
-	if len(req.Files) > 0 && len(messages) > 0 {
-		// Find the last user message
-		var lastUserIdx int = -1
-		for i := len(messages) - 1; i >= 0; i-- {
-			if messages[i]["role"] == "user" {
-				lastUserIdx = i
-				break
-			}
-		}
-
-		if lastUserIdx >= 0 {
-			// Convert the content to an array
-			userMsg := messages[lastUserIdx]
-			userText := userMsg["content"].(string)
-
-			content := []map[string]interface{}{
-				{"type": "text", "text": userText},
-			}
-
-			// Add file content
-			for _, file := range req.Files {
-				content = append(content, map[string]interface{}{
-					"type": "text",
-					"text": file.Content,
-				})
-			}
-
-			// Update the message with content array
-			delete(userMsg, "content")
-			userMsg["content"] = content
-		}
-	}
-
-	// Add tools if specified
-	if len(req.Tools) > 0 {
-		var tools []map[string]interface{}
-
-		for _, tool := range req.Tools {
-			if tool.Type == "web_search" {
-				tools = append(tools, map[string]interface{}{
-					"type": "web_search",
-				})
-			} else if tool.Type == "function" {
-				tools = append(tools, map[string]interface{}{
-					"type": "function",
-					"function": map[string]interface{}{
-						"name":        tool.Name,
-						"description": tool.Description,
-						"parameters":  tool.Parameters,
-					},
-				})
-			}
-		}
-
-		if len(tools) > 0 {
-			apiReq["tools"] = tools
-		}
-	}
-
-	// Add other parameters
-	if req.Temperature > 0 {
-		apiReq["temperature"] = req.Temperature
-	}
-	if req.MaxTokens > 0 {
-		apiReq["max_tokens"] = req.MaxTokens
-	}
-
-	// Add streaming parameter
-	apiReq["stream"] = true
-
-	// Construct HTTP request
-	reqBody, err := json.Marshal(apiReq)
+// Generate sends a request to the OpenAI API and returns a stream of events
+func (c *Client) Generate(ctx context.Context, req *gptx.Request) (gptx.ResponseStream, error) {
+	// Convert request to OpenAI format
+	openaiReq, err := c.convertRequest(req)
 	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
+		return nil, fmt.Errorf("convert request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(
-		ctx,
-		"POST",
-		"https://api.openai.com/v1/chat/completions",
-		strings.NewReader(string(reqBody)),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
+	// Start streaming
+	stream := c.client.Responses.NewStreaming(ctx, openaiReq)
 
-	// Set headers
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+c.APIKey)
+	// Return our wrapped stream
+	return &responseStream{
+		stream: stream,
+		client: c,
+	}, nil
+}
 
-	// Start processing in a goroutine
-	go func() {
-		defer close(stream.Text)
-		defer close(stream.ToolCalls)
-		defer close(stream.Done)
+// ProcessStream processes a response stream, handling text and tool calls
+func (c *Client) ProcessStream(
+	ctx context.Context,
+	stream gptx.ResponseStream,
+	textHandler func(string),
+	toolHandlers map[string]gptx.ToolHandler,
+) error {
+	// Process stream events
+	for stream.HasNext() {
+		event := stream.Next()
 
-		// Send the request
-		client := &http.Client{}
-		resp, err := client.Do(httpReq)
-		if err != nil {
-			fmt.Printf("error sending request: %v\n", err)
-			return
-		}
-		defer resp.Body.Close()
-
-		// Check for error response
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			fmt.Printf("error from OpenAI API: %s\n", string(body))
-			return
-		}
-
-		// Process the stream
-		reader := bufio.NewReader(resp.Body)
-		toolCallsMap := make(map[string]*ToolCall) // Track partial tool calls by ID
-
-		for {
-			// Check if context is canceled
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				// Continue processing
+		switch event.GetType() {
+		case "text":
+			// Handle text content
+			content := event.GetContent()
+			if content != "" && textHandler != nil {
+				textHandler(content)
 			}
 
-			// Read a line
-			line, err := reader.ReadString('\n')
-			if err != nil {
-				if err != io.EOF {
-					fmt.Printf("error reading stream: %v\n", err)
-				}
-				return
-			}
-
-			// Skip empty lines
-			line = strings.TrimSpace(line)
-			if line == "" {
+		case "tool_call":
+			// Handle tool call
+			toolCall := event.GetToolCall()
+			if toolCall == nil {
 				continue
 			}
 
-			// Check for done signal
-			if line == "data: [DONE]" {
-				stream.Done <- struct{}{}
-				return
+			// Skip if handler not available
+			handler, ok := toolHandlers[toolCall.Name]
+			if !ok {
+				continue
 			}
 
-			// Parse the data
-			if strings.HasPrefix(line, "data: ") {
-				data := line[6:] // Remove "data: " prefix
+			// Execute tool
+			result, err := handler(ctx, toolCall.Name, toolCall.Arguments)
+			if err != nil {
+				return fmt.Errorf("execute tool %s: %w", toolCall.Name, err)
+			}
 
-				// Parse the JSON
-				var chunk map[string]interface{}
-				if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-					fmt.Printf("error parsing chunk: %v\n", err)
-					continue
-				}
+			// Submit tool output
+			err = stream.SubmitToolOutputs(ctx, []gptx.ToolOutput{
+				{
+					ID:     toolCall.ID,
+					Name:   toolCall.Name,
+					Output: string(result),
+				},
+			})
 
-				// Process choices
-				if choices, ok := chunk["choices"].([]interface{}); ok && len(choices) > 0 {
-					choice := choices[0].(map[string]interface{})
-
-					// Process delta
-					if delta, ok := choice["delta"].(map[string]interface{}); ok {
-						// Handle text content
-						if content, ok := delta["content"].(string); ok && content != "" {
-							select {
-							case stream.Text <- content:
-							default: // Non-blocking
-							}
-						}
-
-						// Handle tool calls
-						if toolCalls, ok := delta["tool_calls"].([]interface{}); ok {
-							for _, tc := range toolCalls {
-								toolCall := tc.(map[string]interface{})
-
-								// Get tool call ID and index
-								id, _ := toolCall["id"].(string)
-								index, _ := toolCall["index"].(float64)
-
-								// Process function call parts
-								if function, ok := toolCall["function"].(map[string]interface{}); ok {
-									name, nameOk := function["name"].(string)
-									args, argsOk := function["arguments"].(string)
-
-									// Create or update tool call in our map
-									if _, exists := toolCallsMap[id]; !exists {
-										toolCallsMap[id] = &ToolCall{
-											ID:         id,
-											Name:       "",
-											Parameters: nil,
-										}
-									}
-
-									// Update the tool call with any new data
-									if nameOk && name != "" {
-										toolCallsMap[id].Name = name
-									}
-
-									if argsOk && args != "" {
-										// Append to existing parameters if any
-										if toolCallsMap[id].Parameters != nil {
-											currentArgs := string(toolCallsMap[id].Parameters)
-											toolCallsMap[id].Parameters = json.RawMessage(currentArgs + args)
-										} else {
-											toolCallsMap[id].Parameters = json.RawMessage(args)
-										}
-
-										// Check if tool call is complete
-										if isValidJSON(string(toolCallsMap[id].Parameters)) &&
-											toolCallsMap[id].Name != "" && index == 0 {
-
-											// Send complete tool call
-											select {
-											case stream.ToolCalls <- *toolCallsMap[id]:
-												// Remove from map after sending
-												delete(toolCallsMap, id)
-											default: // Non-blocking
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
+			if err != nil {
+				return fmt.Errorf("submit tool output: %w", err)
 			}
 		}
-	}()
+	}
 
-	return stream, nil
+	// Check for stream errors
+	if err := stream.Err(); err != nil {
+		return fmt.Errorf("stream error: %w", err)
+	}
+
+	return nil
 }
 
-// isValidJSON checks if a string is valid JSON
-func isValidJSON(str string) bool {
-	var js json.RawMessage
-	return json.Unmarshal([]byte(str), &js) == nil
+// convertRequest converts a gptx.Request to an OpenAI API request
+func (c *Client) convertRequest(req *gptx.Request) (responses.ResponseNewParams, error) {
+	// Create messages array
+	inputItems := []responses.ResponseInputItemUnionParam{}
+
+	// Add system prompt if provided
+	if req.SystemPrompt != "" {
+		inputItems = append(inputItems, responses.ResponseInputItemUnionParam{
+			OfMessageParam: &responses.MessageParam{
+				Role:    "system",
+				Content: responses.ContentUnionParam{OfString: req.SystemPrompt},
+			},
+		})
+	}
+
+	// Convert messages
+	for _, msg := range req.Messages {
+		// Convert content based on whether we have files
+		var content responses.ContentUnionParam
+
+		// Simple text message
+		content = responses.ContentUnionParam{OfString: msg.Content}
+
+		// Add message to input items
+		inputItems = append(inputItems, responses.ResponseInputItemUnionParam{
+			OfMessageParam: &responses.MessageParam{
+				Role:    msg.Role,
+				Content: content,
+			},
+		})
+	}
+
+	// Convert tools
+	var tools []responses.ToolUnionParam
+	for _, tool := range req.Tools {
+		var openaiTool responses.ToolUnionParam
+
+		switch tool.Type {
+		case "function":
+			// Create function tool
+			openaiTool = responses.ToolUnionParam{
+				OfFunction: &responses.FunctionToolParam{
+					Type:     "function",
+					Function: convertFunctionParams(tool),
+				},
+			}
+		case "web_search":
+			// Create web search tool
+			openaiTool = responses.ToolUnionParam{
+				OfWebSearch: &responses.WebSearchToolParam{
+					Type: responses.WebSearchToolTypeWebSearchPreview,
+				},
+			}
+		}
+
+		tools = append(tools, openaiTool)
+	}
+
+	// Prepare file attachments
+	fileAttachments := []responses.ResponseInputContentUnionParam{}
+	for _, filePath := range req.Files {
+		attachment, err := createFileAttachment(filePath)
+		if err != nil {
+			return responses.ResponseNewParams{}, fmt.Errorf("create file attachment: %w", err)
+		}
+		fileAttachments = append(fileAttachments, attachment)
+	}
+
+	// Create input union
+	input := responses.ResponseNewParamsInputUnion{
+		OfInputItemList: inputItems,
+	}
+
+	// Convert to ChatGPT model format
+	var model shared.ChatModel
+	if strings.HasPrefix(req.Model, "gpt-4") {
+		model = shared.ChatModelGPT4
+	} else if strings.HasPrefix(req.Model, "gpt-3.5") {
+		model = shared.ChatModelGPT3_5Turbo
+	} else {
+		// Default to latest model
+		model = shared.ChatModelGPT4o
+	}
+
+	// Create request
+	requestParams := responses.ResponseNewParams{
+		Model:             model,
+		Input:             input,
+		Tools:             tools,
+		Temperature:       param.Opt[float64]{Value: float64(req.Temperature)},
+		ParallelToolCalls: param.Opt[bool]{Value: true},
+	}
+
+	// Set max tokens if specified
+	if req.MaxTokens > 0 {
+		requestParams.MaxOutputTokens = param.Opt[int64]{Value: int64(req.MaxTokens)}
+	}
+
+	// Set user if specified
+	if req.User != "" {
+		requestParams.User = param.Opt[string]{Value: req.User}
+	}
+
+	return requestParams, nil
+}
+
+// createFileAttachment creates a file attachment from a file path
+func createFileAttachment(filePath string) (responses.ResponseInputContentUnionParam, error) {
+	// Read file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return responses.ResponseInputContentUnionParam{}, fmt.Errorf("read file: %w", err)
+	}
+
+	// Get file type
+	fileType := "text/plain"
+	switch {
+	case strings.HasSuffix(filePath, ".go"):
+		fileType = "text/plain"
+	case strings.HasSuffix(filePath, ".md"):
+		fileType = "text/markdown"
+	case strings.HasSuffix(filePath, ".json"):
+		fileType = "application/json"
+	case strings.HasSuffix(filePath, ".png"):
+		fileType = "image/png"
+	case strings.HasSuffix(filePath, ".jpg"), strings.HasSuffix(filePath, ".jpeg"):
+		fileType = "image/jpeg"
+	}
+
+	// Create attachment
+	return responses.ResponseInputContentUnionParam{
+		OfImageParam: &responses.ImageParam{
+			Type:   fileType,
+			Source: responses.ImageSourceUnionParam{OfBase64: string(data)},
+		},
+	}, nil
+}
+
+// convertFunctionParams converts function parameters
+func convertFunctionParams(tool common.Tool) responses.FunctionObjectParam {
+	return responses.FunctionObjectParam{
+		Name:        tool.Name,
+		Description: param.Opt[string]{Value: tool.Description},
+		Parameters:  tool.Parameters,
+	}
+}
+
+// HasNext returns true if there are more events
+func (s *responseStream) HasNext() bool {
+	return s.stream.Next()
+}
+
+// Next returns the next event
+func (s *responseStream) Next() gptx.ResponseEvent {
+	data := s.stream.Current()
+
+	// Create event based on data type
+	s.currentEvent = &responseEvent{
+		streamData: &data,
+	}
+
+	switch {
+	case data.AsResponseDelta != nil:
+		delta := data.AsResponseDelta
+		s.currentEvent.eventType = "text"
+
+		// Extract text content if available
+		if delta.Delta.Content != nil {
+			s.currentEvent.content = *delta.Delta.Content
+		}
+
+	case data.AsResponseToolCallDelta != nil:
+		toolCall := data.AsResponseToolCallDelta
+		s.currentEvent.eventType = "tool_call"
+
+		// Create tool call object
+		s.currentEvent.toolCall = &gptx.ToolCall{
+			ID:   toolCall.ToolCallID,
+			Name: toolCall.Delta.Name,
+		}
+
+		// Add function arguments if available
+		if toolCall.Delta.Function != nil && toolCall.Delta.Function.Arguments != nil {
+			s.currentEvent.toolCall.Arguments = []byte(*toolCall.Delta.Function.Arguments)
+		}
+	}
+
+	return s.currentEvent
+}
+
+// Close closes the stream
+func (s *responseStream) Close() {
+	s.stream.Close()
+}
+
+// Err returns any error that occurred during streaming
+func (s *responseStream) Err() error {
+	return s.stream.Err()
+}
+
+// SubmitToolOutputs submits tool outputs to the model
+func (s *responseStream) SubmitToolOutputs(ctx context.Context, outputs []gptx.ToolOutput) error {
+	// Convert outputs to OpenAI format
+	var toolOutputs []responses.ResponseSubmitToolOutputsParamsToolOutputParam
+
+	for _, output := range outputs {
+		toolOutputs = append(toolOutputs, responses.ResponseSubmitToolOutputsParamsToolOutputParam{
+			ToolCallID: output.ID,
+			Output:     output.Output,
+		})
+	}
+
+	// Submit tool outputs
+	_, err := s.client.client.Responses.SubmitToolOutputs(ctx, responses.ResponseSubmitToolOutputsParams{
+		ThreadID:    s.stream.Current().ThreadID,
+		ToolOutputs: toolOutputs,
+	})
+
+	return err
+}
+
+// GetType returns the event type
+func (e *responseEvent) GetType() string {
+	return e.eventType
+}
+
+// GetContent returns the text content if available
+func (e *responseEvent) GetContent() string {
+	return e.content
+}
+
+// GetToolCall returns tool call info if available
+func (e *responseEvent) GetToolCall() *gptx.ToolCall {
+	return e.toolCall
 }

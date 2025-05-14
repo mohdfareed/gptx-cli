@@ -3,10 +3,10 @@ package main
 
 const (
 	// APP_DESC is the main command description
-	APP_DESC = `Interact with OpenAI models from your terminal.
+	APP_DESC = `Interact with LLM models from your terminal.
 
 Features:
-- Send messages to OpenAI models
+- Send messages to LLM models
 - Include file contents using the @file tag system
 - Configure model parameters
 - Use multiple configuration methods
@@ -16,7 +16,7 @@ Learn more about a command:
     gptx help <command>`
 
 	// MSG_DESC is the description for the msg command
-	MSG_DESC = `Send a message to an OpenAI model.
+	MSG_DESC = `Send a message to an LLM model.
 
 Include file contents with tags:
     @file(path)            Include entire file

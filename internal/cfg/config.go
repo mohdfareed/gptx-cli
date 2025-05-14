@@ -1,4 +1,4 @@
-package gptx
+package cfg
 
 import (
 	"context"
@@ -25,6 +25,8 @@ type Config struct {
 	SysPrompt string   `env:"sys_prompt"`
 	Files     []string `env:"files"`
 	Tools     []string `env:"tools"`
+	Repo      string   `env:"tools_repo"`
+	Shell     string   `env:"tools_shell"`
 	Tokens    *int     `env:"max_tokens"`
 	Temp      int      `env:"temperature"`
 }
@@ -36,13 +38,13 @@ type Config struct {
 func (c *Config) Flags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name: "api-key", Usage: "Set OpenAI API key",
+			Name: "api-key", Usage: "Set Platform API key",
 			Category: CATEGORY, Destination: &c.APIKey,
-			Sources:  cli.EnvVars(EnvVar(c, "APIKey"), "OPENAI_API_KEY"),
+			Sources:  cli.EnvVars(EnvVar(c, "APIKey")),
 			Required: true,
 		},
 		&cli.StringFlag{
-			Name: "model", Usage: "Select OpenAI model to use",
+			Name: "model", Usage: "Select model to use",
 			Category: CATEGORY, Destination: &c.Model,
 			Sources: cli.EnvVars(EnvVar(c, "Model")),
 			Value:   "o4-mini",
@@ -66,6 +68,16 @@ func (c *Config) Flags() []cli.Flag {
 			Category: CATEGORY, Destination: &c.Tools,
 			Sources: cli.EnvVars(EnvVar(c, "Tools")),
 			Value:   []string{}, Aliases: []string{"t"},
+		},
+		&cli.StringFlag{
+			Name: "shell", Usage: "Set shell for the model",
+			Category: CATEGORY, Destination: &c.Shell,
+			Sources: cli.EnvVars(EnvVar(c, "Shell")),
+		},
+		&cli.StringFlag{
+			Name: "repo", Usage: "Root path for repository exploration",
+			Category: CATEGORY, Destination: &c.Repo,
+			Sources: cli.EnvVars(EnvVar(c, "RepoPath")),
 		},
 		&cli.IntFlag{
 			Name: "max-tokens", Usage: "Limit response length",

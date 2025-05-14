@@ -6,19 +6,20 @@ import (
 	"os"
 	"sort"
 
+	"github.com/mohdfareed/gptx-cli/internal/cfg"
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
 	"github.com/urfave/cli/v3"
 )
 
 func mainCMD() *cli.Command {
 	return &cli.Command{
-		Name: gptx.AppName, Usage: "Interact with OpenAI models",
+		Name: cfg.AppName, Usage: "Interact with an LLM models",
 		Description:    APP_DESC,
 		DefaultCommand: "msg",
 	}
 }
 
-func msgCMD(config *gptx.Config) *cli.Command {
+func msgCMD(config *cfg.Config) *cli.Command {
 	var msg string
 	return &cli.Command{
 		Name: "msg", Usage: "Send a message to a model",
@@ -30,22 +31,22 @@ func msgCMD(config *gptx.Config) *cli.Command {
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			// Create the model
-			model := gptx.NewModel(config)
-			for event := range model.Events.Channel {
-				printModelEvent(event)
+			prompt, attachments, err := PromptUser(*config, cmd.Args().Slice())
+			if err != nil {
+				return fmt.Errorf("prompt: %w", err)
 			}
-			println() // Add newline after response
+			config.Files = append(config.Files, attachments...)
 
-			// Listen for events
-			go func(event *gptx.Event) {
-				for event := range event.Channel {
-					printModelEvent(event)
-				}
-			}(model.Events)
+			// Create the model
+			model, err := gptx.NewModel(config)
+			if err != nil {
+				return fmt.Errorf("model: %w", err)
+			}
+			printModelEvent(*model.Events)
+			defer println()
 
 			// Send the message
-			err := model.Message(ctx, msg, os.Stdout)
+			err = model.Message(ctx, prompt, os.Stdout)
 			if err != nil {
 				return fmt.Errorf("model: %w", err)
 			}
@@ -54,7 +55,7 @@ func msgCMD(config *gptx.Config) *cli.Command {
 	}
 }
 
-func configCMD(config *gptx.Config) *cli.Command {
+func configCMD(config *cfg.Config) *cli.Command {
 	return &cli.Command{
 		Name: "cfg", Usage: "Show current configuration",
 		Description: CONFIG_DESC,
@@ -78,7 +79,7 @@ func configCMD(config *gptx.Config) *cli.Command {
 
 			// Show source files
 			PrintErr("\nConfiguration Files:\n")
-			for _, file := range gptx.ConfigFiles() {
+			for _, file := range cfg.ConfigFiles() {
 				PrintErr("- %s\n", file)
 			}
 			return nil

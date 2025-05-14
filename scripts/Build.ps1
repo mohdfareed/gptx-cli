@@ -76,3 +76,22 @@ $env:GOOS = $DevOS
 $env:GOARCH = $DevArch
 go build -C $BinPath -tags=dev $AppPath
 Write-Host "-> Dev pkg at: $BinPath/$(Split-Path -Leaf $AppPath)"
+
+# Update documentation
+# echo "updating docs..."
+# echo "# gptx" > "cmd/cli.md" # root/cmd/cli.md
+# echo > "cmd/cli.md"
+# if [ "$GOOS" = "windows" ]; then
+#   go run -C $BIN/gptx.exe -h >> "cmd/cli.md"
+# fi
+
+
+Write-Host "updating docs..."
+"# gptx" | Out-File "cmd/cli.md" -Encoding utf8
+"" | Add-Content "cmd/cli.md"
+if ($env:GOOS -eq "windows") {
+  & go run -C "$env:BIN/gptx.exe" -h | Add-Content "cmd/cli.md"
+}
+else {
+  & go run -C "$env:BIN/gptx" -h | Add-Content "cmd/cli.md"
+}

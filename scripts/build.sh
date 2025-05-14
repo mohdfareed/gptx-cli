@@ -47,3 +47,13 @@ build windows amd64 "win-x64"
 echo "building for development..."
 go build -C "$BIN" -tags=dev "$APP"
 echo "-> dev pkg at: $BIN/$(basename "$APP")"
+
+# update documentation
+echo "updating docs..."
+echo "# gptx" > "cmd/cli.md"
+echo > "cmd/cli.md"
+if [ "$GOOS" = "windows" ]; then
+  go run -C $BIN/gptx.exe -h >> "cmd/cli.md"
+else
+  go run -C $BIN/gptx -h >> "cmd/cli.md"
+fi

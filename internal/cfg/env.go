@@ -1,4 +1,4 @@
-package gptx
+package cfg
 
 import (
 	"fmt"

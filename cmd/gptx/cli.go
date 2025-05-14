@@ -5,7 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mohdfareed/gptx-cli/pkg/gptx"
+	"github.com/mohdfareed/gptx-cli/internal/cfg"
+	"github.com/mohdfareed/gptx-cli/internal/events"
 	"github.com/urfave/cli/v3"
 	"golang.org/x/term"
 )
@@ -55,7 +56,7 @@ var colorizeFlag = &cli.StringFlag{
 	Name:    "color",
 	Usage:   "colorize output, one of: auto, always, never",
 	Value:   "auto",
-	Sources: cli.EnvVars(gptx.EnvVar(nil, "COLORIZE"), "NO_COLOR"),
+	Sources: cli.EnvVars(cfg.EnvVar(nil, "COLORIZE"), "NO_COLOR"),
 	Validator: func(value string) error {
 		switch value {
 		case "auto":
@@ -104,17 +105,26 @@ func shortenText(text string, maxLen int) string {
 	return text[:maxLen-3] + "..."
 }
 
-func printModelEvent(payload gptx.Payload) {
-	switch payload.Type {
-	case gptx.EventStart:
-		Debug("Model started")
-	case gptx.EventTool:
-		Info(payload.Data)
-	case gptx.EventReply:
-		Print(payload.Data)
-	case gptx.EventError:
-		Error(payload.Data)
-	case gptx.EventComplete:
-		Debug("Model done")
-	}
+func printModelEvent(mgr events.Manager) {
+	mgr.Subscribe(nil, events.Start, func(data string) {
+		Debug("Model started. Config: %v", data)
+	})
+	mgr.Subscribe(nil, events.Reply, func(data string) {
+		Print(data)
+	})
+	mgr.Subscribe(nil, events.InternalReply, func(data string) {
+		PrintErr(data)
+	})
+	mgr.Subscribe(nil, events.ToolCall, func(data string) {
+		Info("Tool call: %s", data)
+	})
+	mgr.Subscribe(nil, events.ToolResult, func(data string) {
+		Info("Tool result: %s", data)
+	})
+	mgr.Subscribe(nil, events.Error, func(err string) {
+		Error("Model error: %s", err)
+	})
+	mgr.Subscribe(nil, events.Done, func(usage string) {
+		Debug("Model done. Usage: %s", usage)
+	})
 }

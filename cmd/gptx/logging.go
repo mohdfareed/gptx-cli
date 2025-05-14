@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mohdfareed/gptx-cli/pkg/gptx"
+	"github.com/mohdfareed/gptx-cli/internal/cfg"
 	"github.com/urfave/cli/v3"
 )
 
@@ -81,7 +81,7 @@ var (
 		Usage:   "Show debug messages",
 		Aliases: []string{"v"},
 		Sources: cli.EnvVars(
-			gptx.EnvVar(nil, "VERBOSE"), gptx.EnvVar(nil, "DEBUG"),
+			cfg.EnvVar(nil, "VERBOSE"), cfg.EnvVar(nil, "DEBUG"),
 		),
 		Destination: &verbose,
 	}
@@ -91,7 +91,7 @@ var (
 		Usage:   "Show only error messages",
 		Aliases: []string{"silent", "q"},
 		Sources: cli.EnvVars(
-			gptx.EnvVar(nil, "QUIET"), gptx.EnvVar(nil, "SILENT"),
+			cfg.EnvVar(nil, "QUIET"), cfg.EnvVar(nil, "SILENT"),
 		),
 		Value:       !isTerm,
 		Destination: &silent,

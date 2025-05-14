@@ -1,4 +1,4 @@
-package gptx
+package files
 
 import (
 	"fmt"
@@ -9,89 +9,72 @@ import (
 	"strings"
 )
 
-const tagRegex = `@(.+?)\((.*?)\)` // @tag(args)
+const tagRegex = `^@(.+)\((.*)\)$` // ^@tag(args)$
 var regex = regexp.MustCompile(tagRegex)
 
-// ProcessTags processes special tags in the prompt text and replaces them
-// with their content. Currently supports:
-// - @file(path) - Includes the content of the entire file
-// - @file(path:start-end) - Includes specific line range from a file
-func ProcessTags(prompt string) (string, error) {
+func ProcessTags(prompt string) (string, []string, error) {
 	// parse tags
 	matches := regex.FindAllStringSubmatch(prompt, -1)
 	if len(matches) == 0 {
-		return prompt, nil
+		return prompt, nil, nil
 	}
 
 	// process each tag
+	var attachments []string
 	for _, match := range matches {
 		var result string
-		var err error
-
 		switch match[1] {
 		case "file":
-			result, err = fileTag(match[2])
+			r, a, err := fileTag(match[2])
+			if err != nil {
+				return "", nil, fmt.Errorf("file tag: %w", err)
+			}
+			attachments = append(attachments, a...)
+			result = r
 		default: // unknown tag
 			continue
 		}
-
-		if err != nil {
-			return "", fmt.Errorf("tags: %w", err)
-		}
 		prompt = strings.Replace(prompt, match[0], result, 1)
 	}
-	return prompt, nil
+	return prompt, attachments, nil
 }
 
 // MARK: File Tags
 // ============================================================================
 
 const fileTagRegex = `^(.*?)(?::(\d+)-(\d+))?$` // ^filepath[:start-end]$
-var fileRegex = regexp.MustCompile(fileTagRegex)
+var fileRegex *regexp.Regexp = regexp.MustCompile(fileTagRegex)
 
-func fileTag(args string) (string, error) {
+func fileTag(args string) (string, []string, error) {
 	// parse the file tag
 	match := fileRegex.FindStringSubmatch(args)
-	var path string
 	if len(match) == 0 {
-		path = match[0]
-	} else {
-		path = match[1]
+		return "", nil, fmt.Errorf("invalid file: %q", args)
 	}
+	path := match[1]
 
 	// read the file
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	file := strings.Split(string(data), "\n")
 	id := path
 
 	// parse the start and end lines
-	if len(match) == 4 {
+	if len(match) == 3 {
 		start, err := strconv.Atoi(match[2])
 		if err != nil {
-			return "", fmt.Errorf("file tag: %w", err)
+			return "", nil, fmt.Errorf("start line: %w", err)
 		}
 		end, err := strconv.Atoi(match[3])
 		if err != nil {
-			return "", fmt.Errorf("file tag: %w", err)
+			return "", nil, fmt.Errorf("end line: %w", err)
 		}
-
-		// validate the start and end lines
 		if start < 0 || end < 0 || start > end {
-			return "", fmt.Errorf("file tag: %d-%d", start, end)
+			return "", nil, fmt.Errorf("invalid range: %d-%d", start, end)
 		}
-		if start > len(file) {
-			return "", fmt.Errorf("file tag: start line %d out of range", start)
-		}
-
-		// slice the file content
-		endLine := end
-		if endLine > len(file) {
-			endLine = len(file)
-		}
-		file = file[start-1 : endLine]
+		file = file[start-1 : end-1]
 		id = fmt.Sprintf("%s:%d-%d", id, start, end)
 	}
 
@@ -99,5 +82,5 @@ func fileTag(args string) (string, error) {
 	tag := "\nFile: %s\n\n```%s\n%s\n```\n"
 	ext := filepath.Ext(path)
 	text := strings.Join(file, "\n")
-	return fmt.Sprintf(tag, id, ext, text), nil
+	return fmt.Sprintf(tag, id, ext, text), nil, nil
 }

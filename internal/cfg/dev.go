@@ -1,7 +1,7 @@
 //go:build dev
 // +build dev
 
-package gptx
+package cfg
 
 import (
 	"github.com/joho/godotenv"

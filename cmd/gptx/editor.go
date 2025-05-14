@@ -7,7 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/mohdfareed/gptx-cli/pkg/gptx"
+	"github.com/mohdfareed/gptx-cli/internal/cfg"
+	"github.com/mohdfareed/gptx-cli/internal/files"
 	"github.com/urfave/cli/v3"
 )
 
@@ -18,7 +19,7 @@ var editorFlag = &cli.StringFlag{
 	Name:        "editor",
 	Usage:       "Use specified text editor for input",
 	Aliases:     []string{"e"},
-	Sources:     cli.EnvVars(gptx.EnvVar(nil, "EDITOR"), "EDITOR"),
+	Sources:     cli.EnvVars(cfg.EnvVar(nil, "EDITOR"), "EDITOR"),
 	Destination: &editor,
 }
 var editor string
@@ -28,7 +29,7 @@ var editor string
 
 // PromptUser gets user message. Input is retrieved in the following order:
 // user input -> editor -> terminal
-func PromptUser(config gptx.Config, args []string) (string, error) {
+func PromptUser(config cfg.Config, args []string) (string, []string, error) {
 	var msg string
 	var err error
 
@@ -41,16 +42,16 @@ func PromptUser(config gptx.Config, args []string) (string, error) {
 	}
 
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	// Process any tags in the prompt text
-	processed, err := gptx.ProcessTags(strings.TrimSpace(msg))
+	processed, attachments, err := files.ProcessTags(strings.TrimSpace(msg))
 	if err != nil {
-		return "", fmt.Errorf("process tags: %w", err)
+		return "", nil, fmt.Errorf("process tags: %w", err)
 	}
 
-	return processed, nil
+	return processed, attachments, nil
 }
 
 // MARK: Editor
@@ -85,7 +86,7 @@ func editorPrompt(editor string) (string, error) {
 // MARK: Terminal
 // ============================================================================
 
-func terminalPrompt(config gptx.Config) (string, error) {
+func terminalPrompt(config cfg.Config) (string, error) {
 	modelPrefix(config.Model, "")
 	scanner := bufio.NewScanner(os.Stdin)
 	var lines []string
@@ -98,7 +99,7 @@ func terminalPrompt(config gptx.Config) (string, error) {
 }
 
 func modelPrefix(model string, chat string) {
-	app := Dim + gptx.AppName + Reset
+	app := Dim + cfg.AppName + Reset
 	model = Bold + G + model + Reset
 	title := Bold + B + chat + Reset
 

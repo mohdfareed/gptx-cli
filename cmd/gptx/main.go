@@ -4,13 +4,13 @@ import (
 	"context"
 	"os"
 
-	"github.com/mohdfareed/gptx-cli/pkg/gptx"
+	"github.com/mohdfareed/gptx-cli/internal/cfg"
 	"github.com/urfave/cli/v3"
 )
 
 func main() {
-	config := &gptx.Config{} // configuration
-	cmd := mainCMD()         // cli app
+	config := &cfg.Config{} // configuration
+	cmd := mainCMD()        // cli app
 
 	cmd.Flags = append([]cli.Flag{
 		colorizeFlag,
