@@ -62,8 +62,8 @@ func configCMD(config *cfg.Config) *cli.Command {
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			// Convert config to a map for display
 			configMap := config.ToEnvMap()
-			configMap["API Key"] = maskAPIKey(config.APIKey)
-			configMap["System Prompt"] = shortenText(config.SysPrompt, 40)
+			configMap["GPTX_API_KEY"] = maskAPIKey(config.APIKey)
+			configMap["GPTX_SYS_PROMPT"] = shortenText(config.SysPrompt, 40)
 
 			// Sort keys for consistent output
 			keys := make([]string, 0, len(configMap))

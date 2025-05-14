@@ -8,7 +8,6 @@ import (
 
 	"github.com/mohdfareed/gptx-cli/internal/cfg"
 	"github.com/mohdfareed/gptx-cli/internal/events"
-	"github.com/mohdfareed/gptx-cli/internal/files"
 	"github.com/mohdfareed/gptx-cli/internal/tools"
 )
 
@@ -129,104 +128,76 @@ func (m *Model) Message(ctx context.Context, prompt string, output io.Writer) er
 		return fmt.Errorf("no client set, use WithClient to set a client")
 	}
 
-	// Process prompt tags if present
-	tagPrefix := "@file" // Default tag prefix
-	processedPrompt, err := files.ProcessTags(prompt, tagPrefix)
-	if err != nil {
-		return fmt.Errorf("process prompt: %w", err)
-	}
+	// // Process prompt tags if present
+	// tagPrefix := "@file" // Default tag prefix
+	// processedPrompt, err := files.ProcessTags(prompt, tagPrefix)
+	// if err != nil {
+	// 	return fmt.Errorf("process prompt: %w", err)
+	// }
 
 	// Create context with cancellation
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// Emit start event
-	m.Events.EventStart.Emit(ctx, struct{}{})
+	m.Events.Emit(ctx, events.Start, fmt.Sprintf("config: %s", m.Config.Model))
 
-	// Create request with messages
-	req := &Request{
-		Model:        m.Config.Model,
-		SystemPrompt: m.Config.SysPrompt,
-		Messages: []Message{
-			{Role: "user", Content: processedPrompt},
-		},
-		Temperature: float32(m.Config.Temp) / 100.0,
-	}
+	// // Create request with messages
+	// req := &Request{
+	// 	Model:        m.Config.Model,
+	// 	SystemPrompt: m.Config.SysPrompt,
+	// 	Messages: []Message{
+	// 		{Role: "user", Content: processedPrompt},
+	// 	},
+	// 	Temperature: float32(m.Config.Temp) / 100.0,
+	// }
 
-	// Add user identifier if present
-	if m.Config.UserID != "" {
-		req.User = m.Config.UserID
-	}
+	// // Add user identifier if present
+	// if m.Config.UserID != "" {
+	// 	req.User = m.Config.UserID
+	// }
 
-	// Add max tokens if specified
-	if m.Config.Tokens != nil {
-		req.MaxTokens = *m.Config.Tokens
-	}
+	// // Add max tokens if specified
+	// if m.Config.Tokens != nil {
+	// 	req.MaxTokens = *m.Config.Tokens
+	// }
 
-	// Add files from the processed tags and config
-	allFiles := append(attachments, m.Config.Files...)
-	if len(allFiles) > 0 {
-		req.Files = allFiles
-	}
+	// // Add files from the processed tags and config
+	// allFiles := append(attachments, m.Config.Files...)
+	// if len(allFiles) > 0 {
+	// 	req.Files = allFiles
+	// }
 
-	// Add tools from the tool manager if tools are enabled
-	if len(m.Config.Tools) > 0 {
-		req.Tools = m.Tools.GetToolDefinitions()
-	}
+	// // Add tools from the tool manager if tools are enabled
+	// if len(m.Config.Tools) > 0 {
+	// 	req.Tools = m.Tools.GetToolDefinitions()
+	// }
 
-	// Send request to model via client
-	stream, err := m.client.Generate(ctx, req)
-	if err != nil {
-		m.Events.EventError.Emit(ctx, fmt.Errorf("generate: %w", err))
-		return fmt.Errorf("generate: %w", err)
-	}
-	defer stream.Close()
+	// // Send request to model via client
+	// stream, err := m.client.Generate(ctx, req)
+	// if err != nil {
+	// 	m.Events.EventError.Emit(ctx, fmt.Errorf("generate: %w", err))
+	// 	return fmt.Errorf("generate: %w", err)
+	// }
+	// defer stream.Close()
 
-	// Set up handlers for stream events
-	textHandler := func(text string) {
-		// Emit reply event
-		m.Events.EventReply.Emit(ctx, text)
+	// // Set up handlers for stream events
+	// textHandler := func(text string) {
+	// 	// Emit reply event
+	// 	m.Events.EventReply.Emit(ctx, text)
 
-		// Write to output
-		fmt.Fprint(output, text)
-	}
+	// 	// Write to output
+	// 	fmt.Fprint(output, text)
+	// }
 
-	// Process the stream
-	err = m.client.ProcessStream(ctx, stream, textHandler, m.handleTools(ctx))
-	if err != nil {
-		m.Events.EventError.Emit(ctx, fmt.Errorf("process stream: %w", err))
-		return fmt.Errorf("process stream: %w", err)
-	}
+	// // Process the stream
+	// err = m.client.ProcessStream(ctx, stream, textHandler, m.handleTools(ctx))
+	// if err != nil {
+	// 	m.Events.EventError.Emit(ctx, fmt.Errorf("process stream: %w", err))
+	// 	return fmt.Errorf("process stream: %w", err)
+	// }
 
 	// Emit completion event
-	m.Events.EventDone.Emit(ctx, struct{}{})
+	m.Events.Emit(ctx, events.Done, "100 tokens")
 	return nil
-}
-
-// handleTools returns a map of tool handlers for the client
-func (m *Model) handleTools(ctx context.Context) map[string]ToolHandler {
-	handlers := make(map[string]ToolHandler)
-
-	for _, toolName := range m.Config.Tools {
-		// Create a closure that delegates to the tools manager
-		// Capture toolName to avoid loop variable issues
-		name := toolName
-		handlers[name] = func(ctx context.Context, toolName string, args json.RawMessage) (json.RawMessage, error) {
-			// Emit tool call event
-			m.Events.EventToolCall.Emit(ctx, string(args))
-
-			// Execute tool using the tools manager
-			result, err := m.Tools.HandleToolCall(ctx, name, args)
-			if err != nil {
-				return nil, err
-			}
-
-			// Emit tool result event
-			m.Events.EventToolResult.Emit(ctx, string(result))
-
-			return result, nil
-		}
-	}
-
-	return handlers
 }

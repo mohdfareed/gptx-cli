@@ -77,7 +77,7 @@ func (c *Config) Flags() []cli.Flag {
 		&cli.StringFlag{
 			Name: "repo", Usage: "Root path for repository exploration",
 			Category: CATEGORY, Destination: &c.Repo,
-			Sources: cli.EnvVars(EnvVar(c, "RepoPath")),
+			Sources: cli.EnvVars(EnvVar(c, "Repo")),
 		},
 		&cli.IntFlag{
 			Name: "max-tokens", Usage: "Limit response length",

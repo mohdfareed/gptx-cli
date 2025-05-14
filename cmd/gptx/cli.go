@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -91,8 +92,8 @@ func formatKeyValue(key string, value string) string {
 }
 
 func maskAPIKey(key string) string {
-	if len(key) > 8 {
-		return key[:4] + "..." + key[len(key)-4:]
+	if len(key) > 16 {
+		return key[:8] + "..." + key[len(key)-8:]
 	}
 	return key
 }
@@ -106,25 +107,25 @@ func shortenText(text string, maxLen int) string {
 }
 
 func printModelEvent(mgr events.Manager) {
-	mgr.Subscribe(nil, events.Start, func(data string) {
+	mgr.Subscribe(context.TODO(), events.Start, func(data string) {
 		Debug("Model started. Config: %v", data)
 	})
-	mgr.Subscribe(nil, events.Reply, func(data string) {
+	mgr.Subscribe(context.TODO(), events.Reply, func(data string) {
 		Print(data)
 	})
-	mgr.Subscribe(nil, events.InternalReply, func(data string) {
+	mgr.Subscribe(context.TODO(), events.InternalReply, func(data string) {
 		PrintErr(data)
 	})
-	mgr.Subscribe(nil, events.ToolCall, func(data string) {
+	mgr.Subscribe(context.TODO(), events.ToolCall, func(data string) {
 		Info("Tool call: %s", data)
 	})
-	mgr.Subscribe(nil, events.ToolResult, func(data string) {
+	mgr.Subscribe(context.TODO(), events.ToolResult, func(data string) {
 		Info("Tool result: %s", data)
 	})
-	mgr.Subscribe(nil, events.Error, func(err string) {
+	mgr.Subscribe(context.TODO(), events.Error, func(err string) {
 		Error("Model error: %s", err)
 	})
-	mgr.Subscribe(nil, events.Done, func(usage string) {
+	mgr.Subscribe(context.TODO(), events.Done, func(usage string) {
 		Debug("Model done. Usage: %s", usage)
 	})
 }
