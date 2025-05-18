@@ -1,3 +1,5 @@
+// Package gptx provides core model interaction logic, acting as the controller
+// layer between the CLI interface, configuration, events, tools, and API clients.
 package gptx
 
 import (
@@ -10,30 +12,30 @@ import (
 	"github.com/mohdfareed/gptx-cli/internal/tools"
 )
 
-// Client defines a minimal interface for model API operations
+// Client defines a minimal interface for model API operations.
 type Client interface {
-	// Generate starts a conversation with the model using the provided configuration
-	// It emits appropriate events through the provided Events manager
+	// Generate starts a conversation with the model and emits events.
 	Generate(ctx context.Context, config Model, prompt string) error
 }
 
 // Model handles interactions with AI models.
 type Model struct {
-	Config cfg.Config
-	Events *events.ModelEvents
-	Tools  *tools.Tools
-	client Client
+	Config cfg.Config           // Configuration
+	Events *events.ModelEvents  // Event system
+	Tools  *tools.Tools         // Tool manager
+	client Client               // API client
 }
 
-// NewModel creates a new model instance with the given configuration.
+// NewModel creates a new model with the given configuration.
+// Sets up events and tools with automatic tool call handling.
 func NewModel(config cfg.Config) *Model {
 	// Create the event manager
 	events := events.NewEventsManager()
 
-	// Create and set the tools manager
+	// Create tools manager
 	toolsManager := tools.NewTools(config)
 
-	// Subscribe tools to events
+	// Wire up tool execution flow via events
 	events.ToolCall.Subscribe(context.Background(), func(call tools.ToolCall) {
 		result, err := toolsManager.CallTool(context.Background(), call)
 		if err != nil {
@@ -43,7 +45,7 @@ func NewModel(config cfg.Config) *Model {
 		events.ToolResult.Emit(context.Background(), result)
 	})
 
-	// Create a new model instance
+	// Create a new model instance with all components wired together
 	model := &Model{
 		Config: config, Events: events, Tools: toolsManager,
 	}

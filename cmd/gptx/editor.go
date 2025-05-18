@@ -1,3 +1,4 @@
+// Package main implements the GPTx CLI.
 package main
 
 import (
@@ -11,9 +12,10 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// MARK: CLI
+// MARK: CLI Flags
 // ============================================================================
 
+// editorFlag for specifying text editor for input composition.
 var editorFlag = &cli.StringFlag{
 	Name:        "editor",
 	Usage:       "Use specified text editor for input",
@@ -21,29 +23,38 @@ var editorFlag = &cli.StringFlag{
 	Sources:     cli.EnvVars(cfg.EnvVar(nil, "EDITOR"), "EDITOR"),
 	Destination: &editor,
 }
+
+// editor command name
 var editor string
 
-// MARK: Prompt
+// MARK: Prompt Handling
 // ============================================================================
 
-// PromptUser gets user message. Input is retrieved in the following order:
-// user input -> editor -> terminal -> no input
+// PromptUser gets user input from args, editor, or terminal in that order.
 func PromptUser(config cfg.Config, args []string) (string, error) {
-	if len(args) > 0 { // user input provided
+	if len(args) > 0 { // Message provided as command line arguments
 		return strings.Join(args, " "), nil
-	} else if editor != "" { // editor specified
+	} else if editor != "" { // Editor specified, open it for composition
 		return editorPrompt(editor)
-	} else if isTerm { // running in terminal
+	} else if isTerm { // Running in terminal, prompt interactively
 		return terminalPrompt(config)
 	}
+	// No input method available
 	return "", nil
 }
 
-// MARK: Editor
+// MARK: Editor Integration
 // ============================================================================
 
+// editorPrompt opens an external text editor for the user to compose a message.
+// It creates a temporary file, launches the specified editor with that file,
+// and then reads the contents after the editor closes.
+//
+// This function allows for a more comfortable editing experience when composing
+// longer or more complex messages, taking advantage of the user's preferred
+// text editor with all its features (syntax highlighting, keyboard shortcuts, etc.)
 func editorPrompt(editor string) (string, error) {
-	// create a temp file
+	// Create a temporary file for the editor to use
 	tmpDir := os.TempDir()
 	tmp, err := os.CreateTemp(tmpDir, "chat-input-*.md")
 	if err != nil {

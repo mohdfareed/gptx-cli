@@ -1,3 +1,4 @@
+// Package cfg handles configuration management.
 package cfg
 
 import (
@@ -10,10 +11,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// AppName is the name of the application.
+// AppName is the application name.
 const AppName string = "gptx"
 
-// AppDir is the directory where application configuration files are stored.
+// AppDir is the user config directory for the app.
 var AppDir string = func() string {
 	configDir, _ := os.UserConfigDir()
 	if configDir == "" {
@@ -22,8 +23,8 @@ var AppDir string = func() string {
 	return filepath.Join(configDir, AppName)
 }()
 
-// EnvVar returns the environment variable name for a given field.
-// It uses the struct field's "env" tag or the field name.
+// EnvVar returns the env var name for a config field.
+// Example: For field "APIKey" with tag `env:"api_key"`, returns "GPTX_API_KEY"
 func EnvVar(obj *Config, field string) string {
 	var tag string
 	if obj != nil {
@@ -38,16 +39,15 @@ func EnvVar(obj *Config, field string) string {
 		tag = field // Use the field name directly
 	}
 
-	// Format as GPTX_FIELD_NAME
+	// Format as GPTX_FIELD_NAME (e.g., GPTX_API_KEY)
 	prefix := strings.ToUpper(AppName)
 	postfix := strings.ToUpper(tag)
 	return fmt.Sprintf("%s_%s", prefix, postfix)
 }
 
-// LoadConfigFiles loads configuration from .gptx files.
-// Searches for files in:
-// 1. Current directory and all parent directories
-// 2. User's config directory
+// LoadConfigFiles loads .gptx files in Git-like fashion:
+// - Current directory and parent dirs (for project settings)
+// - User's config directory (for global settings)
 func LoadConfigFiles() {
 	godotenv.Load(ConfigFiles()...)
 }

@@ -1,3 +1,4 @@
+// Package main provides the GPTx CLI application entry point.
 package main
 
 import (
@@ -8,9 +9,10 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// main is the application entry point.
 func main() {
-	config := &cfg.Config{} // configuration
-	cmd := mainCMD()        // cli app
+	config := &cfg.Config{} // Initialize configuration
+	cmd := mainCMD()        // Create CLI application
 
 	cmd.Flags = append([]cli.Flag{
 		debugFlag,

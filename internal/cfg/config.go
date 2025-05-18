@@ -1,3 +1,5 @@
+// Package cfg handles configuration from CLI flags, env vars, and .gptx files.
+// Order: CLI flags > env vars > local .gptx > parent .gptx > global config
 package cfg
 
 import (
@@ -15,16 +17,16 @@ You are '%s', a CLI app. You are an extension of the command line.
 You behave and respond like a command line tool. Be concise.
 `
 
-// Config is the model's configuration.
+// Config stores application configuration settings.
 type Config struct {
-	APIKey    string   `env:"api_key"`
-	Model     string   `env:"model"`
-	SysPrompt string   `env:"sys_prompt"`
-	Files     []string `env:"files"`
-	WebSearch *bool    `env:"web_search"`
-	Shell     *string  `env:"shell_tool"`
-	Tokens    *int     `env:"max_tokens"`
-	Temp      *float64 `env:"temperature"`
+	APIKey    string   `env:"api_key"`    // OpenAI API key
+	Model     string   `env:"model"`      // Model name
+	SysPrompt string   `env:"sys_prompt"` // System prompt
+	Files     []string `env:"files"`      // Attached files
+	WebSearch *bool    `env:"web_search"` // Enable web search
+	Shell     *string  `env:"shell_tool"` // Shell command
+	Tokens    *int     `env:"max_tokens"` // Max tokens
+	Temp      *float64 `env:"temperature"`// Temperature (controls randomness)
 }
 
 // MARK: Flags

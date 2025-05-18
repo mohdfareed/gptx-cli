@@ -1,3 +1,4 @@
+// Package openai implements OpenAI's Responses API integration.
 package openai
 
 import (
@@ -7,42 +8,53 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
-// NewRequest creates a new model request with the given parameters.
+// NewRequest creates a request for the OpenAI Responses API.
 func NewRequest(
 	model gptx.Model, msgs []MsgData,
 	reasoning shared.ReasoningEffort,
 	userID string,
 ) ModelRequest {
+	// Convert internal tool definitions to OpenAI tool format
 	var tools []ToolDef
 	for _, tool := range model.Tools.GetTools() {
 		tools = append(tools, NewTool(tool.Name, tool.Desc, tool.Params))
 	}
 
+	// Create the input history from messages
 	history := responses.ResponseNewParamsInputUnion{OfInputItemList: msgs}
+
+	// Build the complete request with all configuration options
 	data := responses.ResponseNewParams{
-		Model:        model.Config.Model,
-		Input:        history,
-		Tools:        tools,
-		Instructions: param.Opt[string]{Value: model.Config.SysPrompt},
-		User:         param.Opt[string]{Value: userID},
-		// defaults
-		Store:             param.Opt[bool]{Value: false},
-		ParallelToolCalls: param.Opt[bool]{Value: true},
+		// Core parameters
+		Model:        model.Config.Model,         // Which model to use (e.g., "o4-mini")
+		Input:        history,                    // Message history
+		Tools:        tools,                      // Available tools
+		Instructions: param.Opt[string]{Value: model.Config.SysPrompt}, // System prompt
+		User:         param.Opt[string]{Value: userID},                 // User identifier
+
+		// Default settings
+		Store:             param.Opt[bool]{Value: false}, // Don't store conversations
+		ParallelToolCalls: param.Opt[bool]{Value: true},  // Allow parallel tool usage
 	}
 
-	// temperature
+	// Apply temperature setting if specified
+	// Temperature controls randomness: higher values make output more random,
+	// lower values make it more deterministic and focused
 	if model.Config.Temp != nil {
 		data.Temperature = param.Opt[float64]{Value: *model.Config.Temp}
 	}
 
-	// max tokens
+	// Apply token limit if specified
+	// This limits the maximum length of the model's response
 	if model.Config.Tokens != nil {
 		data.MaxOutputTokens = param.Opt[int64]{
 			Value: int64(*model.Config.Tokens),
 		}
 	}
 
-	// // reasoning
+	// Reasoning setting is currently disabled
+	// When enabled, this would control how much of the model's reasoning
+	// process is exposed in the response
 	// if reasoning != "" {
 	// 	data.Reasoning = shared.ReasoningParam{
 	// 		Effort:          reasoning,

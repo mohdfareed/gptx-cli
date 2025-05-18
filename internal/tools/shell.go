@@ -1,3 +1,4 @@
+// Package tools implements model tools for system interaction.
 package tools
 
 import (
@@ -11,23 +12,29 @@ import (
 	"github.com/mohdfareed/gptx-cli/internal/cfg"
 )
 
+// ShellToolDef is the shell tool identifier.
 const ShellToolDef = "shell"
+
+// ShellToolDescription describes the shell tool's purpose for the model.
 const ShellToolDescription = `Execute shell commands.
 Use this for file operations, system information, or any command-line tasks.
 `
 
+// shellTool defines the base shell tool configuration.
 var shellTool = ToolDef{
 	Name: ShellToolDef,
 	Desc: ShellToolDescription,
 	Params: map[string]any{
-		"shell": "auto",
-		"cmd":   "",
+		"shell": "auto", // Shell to use
+		"cmd":   "",     // Command to execute
 	},
 	Handler: shellHandler,
 }
 
+// NewShellTool creates a shell tool from the given config.
 func NewShellTool(config cfg.Config) ToolDef {
 	tool := shellTool
+
 	if *config.Shell == "auto" {
 		tool.Params["shell"] = getDefaultShell()
 	} else {
@@ -36,6 +43,16 @@ func NewShellTool(config cfg.Config) ToolDef {
 	return tool
 }
 
+// shellHandler implements the shell tool functionality.
+// It executes a shell command and returns the output or an error.
+//
+// Parameters:
+// - shell: The shell to use (bash, zsh, powershell, etc.)
+// - cmd: The command to execute
+//
+// Returns:
+// - The command output as a string
+// - An error if the command fails or the shell is not available
 func shellHandler(ctx context.Context, params map[string]any) (string, error) {
 	shell := params["shell"].(string)
 	cmd := params["cmd"].(string)

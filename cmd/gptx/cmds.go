@@ -1,3 +1,4 @@
+// Package main implements the GPTx CLI commands.
 package main
 
 import (
@@ -12,6 +13,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// mainCMD creates the top-level CLI command.
 func mainCMD() *cli.Command {
 	return &cli.Command{
 		Name: cfg.AppName, Usage: "Interact with an LLM models",
@@ -20,6 +22,7 @@ func mainCMD() *cli.Command {
 	}
 }
 
+// msgCMD creates the message command for model interaction.
 func msgCMD(config *cfg.Config) *cli.Command {
 	var msg []string
 	return &cli.Command{
@@ -28,22 +31,26 @@ func msgCMD(config *cfg.Config) *cli.Command {
 		Arguments: []cli.Argument{
 			&cli.StringArgs{
 				Name: "message", UsageText: "Message to send",
-				Value: "hello world", Destination: &msg, Max: -1,
+				Value: "hello world", Destination: &msg, Max: -1, // Accept multiple arguments
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			// Get the user prompt from command line args, stdin, or editor
 			prompt, err := PromptUser(*config, msg)
 			if err != nil {
 				return fmt.Errorf("prompt: %w", err)
 			}
 
-			// Create the model
+			// Create and configure the model:
+			// 1. Create the OpenAI API client with authentication
+			// 2. Create the model with the user's config
+			// 3. Wire up event handling to display progress and results
 			client := openai.NewOpenAIClient(config.APIKey)
 			model := gptx.NewModel(*config).WithClient(client)
 			printModelEvent(*model.Events)
-			defer println()
+			defer println() // Add a newline after completion
 
-			// Send the message
+			// Send the message to the model and get the response
 			err = model.Message(ctx, prompt, os.Stdout)
 			if err != nil {
 				return fmt.Errorf("model: %w", err)

@@ -13,15 +13,16 @@ It allows you to interact with any GPT model directly from the terminal.
 
 - **File Integration**
   - Attach entire files via `--files` flag with glob pattern support
+  - Include specific file sections with the `@file(path:start-end)` tag syntax
+  - Support for image attachments (jpg, jpeg, png, svg)
 
 - **Event System**
-  - Simple channel-based event system for model interaction
+  - Channel-based event system for model interaction
   - Events for model responses, tool usage, and completions
-  - See what the model is doing in real-time
+  - Real-time visibility into model actions
 
 - **Tools Support**
   - Built-in tools for web search and shell commands
-  - Custom tool support via shell scripts
   - Event emissions for tool usage and results
 
 - **Editor Support**
@@ -42,7 +43,7 @@ gptx --files="*.go" msg "Explain this codebase"
 
 Use tools:
 ```
-gptx --tools="shell,web_search" msg "Find all files in the current directory and summarize them"
+gptx --shell=auto --web=true msg "Find all files in the current directory and summarize them"
 ```
 
 View current configuration:
@@ -55,36 +56,37 @@ gptx cfg
 The application follows a clean separation of concerns:
 
 - **CLI layer** (`cmd/gptx/`): User-facing commands and flags
-- **Core logic** (`pkg/gptx/`): Business logic, configuration, and events
-- **OpenAI API** (`pkg/openai/`): Thin abstraction over the OpenAI Responses API
+- **Core logic** (`internal/`): Business logic, configuration, events, and tools
+- **API layer** (`pkg/`): Model interactions and OpenAI Responses API integration
+
+For detailed architecture documentation, see [docs/architecture.md](docs/architecture.md).
 
 ## Installation
 
 ```
-go install github.com/mohdfareed/chatgpt-cli/cmd/gptx@latest
+go install github.com/mohdfareed/gptx-cli/cmd/gptx@latest
 ```
 
 Or clone and build from source:
 
 ```
-git clone https://github.com/mohdfareed/chatgpt-cli.git
-cd chatgpt-cli
+git clone https://github.com/mohdfareed/gptx-cli.git
+cd gptx-cli
 go build -o gptx ./cmd/gptx
 ```
+
+## Documentation
+
+- [Architecture](docs/architecture.md): System design, components, and API reference
 
 ## References
 
 - [Go Documentation](https://go.dev/doc)
+- [OpenAI Responses API](https://platform.openai.com/docs/api-reference/responses)
 - [OpenAI Go SDK](https://github.com/openai/openai-go)
 - [CLI Framework](https://cli.urfave.org/v3)
 
 ## Roadmap
 
-- [x] Complete model interaction through the `msg` command
-- [x] Support model tools
-  - [x] Web search
-  - [x] Shell commands
-  - [x] Custom user tools
+- [ ] Custom user tools
 - [ ] Implement chat history
-- [ ] Support for image attachments
-- [ ] Conversation management with stateful sessions

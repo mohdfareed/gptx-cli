@@ -1,3 +1,4 @@
+// Package openai implements OpenAI's Responses API integration.
 package openai
 
 import (
@@ -12,9 +13,12 @@ import (
 	"github.com/openai/openai-go/responses"
 )
 
-// UserMsg creates a user message with the given text and files.
+// UserMsg creates a message with text and attached files.
+// Handles text and image files appropriately for the API.
 func UserMsg(text string, files []string) (MsgData, error) {
 	var data []FileData
+
+	// Process each file in the file list
 	for _, path := range files {
 		file, err := readFile(path)
 		if err != nil {
@@ -23,12 +27,14 @@ func UserMsg(text string, files []string) (MsgData, error) {
 		data = append(data, file)
 	}
 
+	// Add the text content if provided
 	if text != "" {
 		data = append(data, FileData{
 			OfInputText: &responses.ResponseInputTextParam{Text: text},
 		})
 	}
 
+	// Create the complete message with role and content
 	msg := MsgData{
 		OfInputMessage: &responses.ResponseInputItemMessageParam{
 			Role: "user", Content: data,
@@ -37,17 +43,26 @@ func UserMsg(text string, files []string) (MsgData, error) {
 	return msg, nil
 }
 
+// readFile loads a file from disk and converts it to the appropriate FileData format
+// based on its extension. Currently supported formats:
+// - Images (.jpg, .jpeg, .png, .svg): Converted to base64-encoded image data
+// - Other files: Treated as text files
+//
+// This function abstracts away the details of file handling, allowing the rest of
+// the application to work with files without worrying about format-specific concerns.
 func readFile(path string) (FileData, error) {
+	// Read the entire file into memory
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return FileData{}, fmt.Errorf("loadFile: %w", err)
 	}
 
+	// Process based on file extension
 	switch filepath.Ext(path) {
 	case ".jpg", ".jpeg", ".png", ".svg":
-		return imageFile(data, path)
+		return imageFile(data, path) // Handle image files
 	default:
-		return dataFile(data, path)
+		return dataFile(data, path) // Handle text files
 	}
 }
 

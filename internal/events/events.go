@@ -1,3 +1,4 @@
+// Package events provides pub/sub communication using Go channels and generics.
 package events
 
 import (
@@ -7,26 +8,24 @@ import (
 	"github.com/mohdfareed/gptx-cli/internal/tools"
 )
 
-// Event is the type of event that can be emitted by the model.
+// Event is a typed event channel with a name.
 type Event[P any] struct {
-	Name string // Name of the event
-	ch   chan P // Channel to send data
+	Name string // Event name
+	ch   chan P // Data channel
 }
 
-// ModelEvents is the manager of events for the model.
+// ModelEvents manages all event types for model interactions.
 type ModelEvents struct {
-	/*Events emitted by the model*/
+	// Events from model
+	Start      Event[cfg.Config] // Config loaded
+	ToolResult Event[string]     // Tool results
+	Error      Event[error]      // Errors
 
-	Start      Event[cfg.Config]
-	ToolResult Event[string]
-	Error      Event[error]
-
-	/*Events emitted by the client*/
-
-	Reply     Event[string]
-	Reasoning Event[string]
-	ToolCall  Event[tools.ToolCall]
-	Done      Event[string]
+	// Events from client
+	Reply     Event[string]          // Model text
+	Reasoning Event[string]          // Reasoning steps from model (when available)
+	ToolCall  Event[tools.ToolCall]  // Request to execute a tool
+	Done      Event[string]          // Emitted when model interaction completes
 }
 
 // NewEventsManager creates a new ModelEvent with the given name.

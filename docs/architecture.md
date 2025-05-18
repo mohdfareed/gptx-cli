@@ -44,6 +44,12 @@ graph TD
 
 ## Package Structure
 
+GPTx CLI follows a clean architecture with separation of concerns between the CLI interface, core business logic, and API integrations. The codebase is organized into three main layers:
+
+1. **CLI Layer** (`cmd/gptx`): User-facing commands and terminal interactions
+2. **Core Logic** (`internal/`): Configuration, events, and tools management
+3. **API Layer** (`pkg/`): Model interfaces and OpenAI API integration
+
 ```mermaid
 graph LR
     Main["main (cmd/gptx/main.go)"] -->|entry point| CLI["CLI (cmd/gptx/*.go)"]
@@ -235,4 +241,78 @@ sequenceDiagram
     Core->>CLI: Finalize interaction
 
     Note over API,Responses: Using streaming pattern with channels for\nboth text and tool calls
+```
+
+## Core APIs
+
+### Configuration (`cfg.Config`)
+
+```go
+// Config is the model's configuration.
+type Config struct {
+    APIKey    string   // OpenAI API key
+    Model     string   // Model name (e.g., "o4-mini")
+    SysPrompt string   // System prompt template
+    Files     []string // Attached files
+    WebSearch *bool    // Enable web search
+    Shell     *string  // Shell command for the model
+    Tokens    *int     // Max response tokens
+    Temp      *float64 // Temperature (randomness)
+}
+```
+
+### Events System (`events.ModelEvents`)
+
+```go
+// ModelEvents is the manager of events for the model.
+type ModelEvents struct {
+    // Events emitted by the model
+    Start      Event[cfg.Config] // Configuration loaded
+    ToolResult Event[string]     // Tool execution result
+    Error      Event[error]      // Error occurred
+
+    // Events emitted by the client
+    Reply     Event[string]          // Text response from model
+    Reasoning Event[string]          // Reasoning from model
+    ToolCall  Event[tools.ToolCall]  // Tool call request
+    Done      Event[string]          // Generation complete
+}
+```
+
+### Model (`gptx.Model`)
+
+```go
+// Model handles interactions with AI models.
+type Model struct {
+    Config cfg.Config         // Configuration
+    Events *events.ModelEvents // Event manager
+    Tools  *tools.Tools       // Tool manager
+    client Client             // API client
+}
+
+// Client defines a minimal interface for model API operations
+type Client interface {
+    // Generate starts a conversation with the model using the provided configuration
+    Generate(ctx context.Context, config Model, prompt string) error
+}
+```
+
+### Tool System (`tools.Tools`)
+
+```go
+// Tools wires up tool calls to handlers and emits results.
+type Tools struct {
+    tools map[string]ToolDef // Registered tools
+}
+
+// ToolDef defines a tool and its handler
+type ToolDef struct {
+    Name    string           // Tool name
+    Desc    string           // Tool description
+    Params  map[string]any   // Tool parameters
+    Handler Tool             // Tool handler function
+}
+
+// Tool function signature
+type Tool func(ctx context.Context, params map[string]any) (string, error)
 ```

@@ -1,3 +1,6 @@
+// Package main implements the command-line interface for GPTx.
+// This file provides logging functionality with different severity levels
+// and formatting options for consistent user feedback throughout the application.
 package main
 
 import (
@@ -8,37 +11,49 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// MARK: Logging
+// MARK: Logging System
 // ============================================================================
 
-// Format strings for log messages
+// Format strings for log messages with color coding for different severity levels.
+// Each message type is formatted with a colored prefix to make it visually
+// distinguishable in the terminal output. Colors are applied only when
+// the output is a terminal (checked in cli.go).
 var (
-	errMsgStr   = Bold + R + "error: " + Reset + "%s\n"
-	warnMsgStr  = Bold + Y + " warn: " + Reset + "%s\n"
-	infoMsgStr  = Bold + B + " info: " + Reset + "%s\n"
-	debugMsgStr = Bold + M + "debug: " + Reset + "%s\n"
+	errMsgStr   = Bold + R + "error: " + Reset + "%s\n" // Red for errors
+	warnMsgStr  = Bold + Y + " warn: " + Reset + "%s\n" // Yellow for warnings
+	infoMsgStr  = Bold + B + " info: " + Reset + "%s\n" // Blue for information
+	debugMsgStr = Bold + M + "debug: " + Reset + "%s\n" // Magenta for debug messages
 )
 
-// Print logs a message to stdout.
-// Accepts both string format with args or an error object.
+// Print logs a message to stdout without any formatting or severity prefix.
+// It accepts either a string format with args or an error object.
+// This is typically used for the main output of commands that are meant
+// to be consumed by both users and other programs (e.g., model responses).
 func Print(msg any, args ...any) {
 	fmt.Fprintf(os.Stdout, "%s", logMsg(msg, args))
 }
 
-// Print logs a message to stderr.
-// Accepts both string format with args or an error object.
+// PrintErr logs a message to stderr without any formatting or severity prefix.
+// It accepts either a string format with args or an error object.
+// This is useful for error messages that might be parsed by other programs
+// without the color coding and prefixes of the Error() function.
 func PrintErr(msg any, args ...any) {
 	fmt.Fprintf(os.Stderr, "%s", logMsg(msg, args))
 }
 
-// Error logs an error message. These are always displayed.
-// Accepts both string format with args or an error object.
+// Error logs an error message to stderr with red "error:" prefix.
+// These messages are always displayed regardless of verbosity settings
+// since they represent critical issues that must be addressed.
+// It accepts either a string format with args or an error object.
 func Error(msg any, args ...any) {
 	fmt.Fprintf(os.Stderr, errMsgStr, logMsg(msg, args))
 }
 
-// Warn logs a warning message if the current log level permits.
-// Accepts both string format with args or an error object.
+// Warn logs a warning message to stderr with yellow "warn:" prefix.
+// Warning messages are suppressed when silent mode is enabled.
+// These indicate potential issues that aren't blocking execution
+// but may lead to unexpected behavior or reduced functionality.
+// It accepts either a string format with args or an error object.
 func Warn(msg any, args ...any) {
 	if silent {
 		return
@@ -46,8 +61,11 @@ func Warn(msg any, args ...any) {
 	fmt.Fprintf(os.Stderr, warnMsgStr, logMsg(msg, args))
 }
 
-// Info logs an informational message if the current log level permits.
-// Accepts both string format with args or an error object.
+// Info logs an informational message to stderr with blue "info:" prefix.
+// Info messages are suppressed when silent mode is enabled.
+// These provide additional context about what's happening during execution,
+// such as configuration details or processing steps.
+// It accepts either a string format with args or an error object.
 func Info(msg any, args ...any) {
 	if silent {
 		return

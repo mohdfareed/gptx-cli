@@ -1,3 +1,4 @@
+// Package openai implements the OpenAI Responses API integration.
 package openai
 
 import (
@@ -11,30 +12,37 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
+// OpenAIClient implements the gptx.Client interface.
 type OpenAIClient struct {
-	client openai.Client
-	userID string
+	client openai.Client // OpenAI SDK client
+	userID string        // User identifier
 }
 
+// NewOpenAIClient creates a new OpenAI client with the provided API key.
 func NewOpenAIClient(apiKey string) *OpenAIClient {
 	return &OpenAIClient{
 		client: openai.NewClient(option.WithAPIKey(apiKey)),
 	}
 }
 
+// Generate starts a conversation with the model using streaming responses.
+// Implements the gptx.Client interface.
+// 5. Handles completion, errors, and cleanup
 func (c *OpenAIClient) Generate(
 	ctx context.Context, model gptx.Model, prompt string,
 ) error {
+	// Create user message with prompt and attached files
 	msg, err := UserMsg(prompt, model.Config.Files)
 	if err != nil {
 		return fmt.Errorf("openai: %w", err)
 	}
 	msgs := []MsgData{msg}
 
+	// Create and send the streaming request
 	req := NewRequest(model, msgs, shared.ReasoningEffortHigh, c.userID)
 	stream := c.client.Responses.NewStreaming(ctx, req)
 	model.Events.Start.Emit(ctx, model.Config)
-	defer stream.Close()
+	defer stream.Close() // Ensure the stream is closed when we're done
 
 	// stream the response
 	var response responses.Response
