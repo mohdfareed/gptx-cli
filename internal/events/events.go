@@ -15,15 +15,18 @@ type Event[P any] struct {
 
 // ModelEvents is the manager of events for the model.
 type ModelEvents struct {
-	Start Event[cfg.Config]
-	Error Event[error]
-	Done  Event[string]
+	/*Events emitted by the model*/
+
+	Start      Event[cfg.Config]
+	ToolResult Event[string]
+	Error      Event[error]
+
+	/*Events emitted by the client*/
 
 	Reply     Event[string]
 	Reasoning Event[string]
-
-	ToolCall   Event[tools.ToolCall]
-	ToolResult Event[string]
+	ToolCall  Event[tools.ToolCall]
+	Done      Event[string]
 }
 
 // NewEventsManager creates a new ModelEvent with the given name.

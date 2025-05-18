@@ -1,3 +1,5 @@
+package openai
+
 import (
 	"encoding/base64"
 	"fmt"

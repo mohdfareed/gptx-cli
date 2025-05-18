@@ -21,10 +21,10 @@ type Config struct {
 	Model     string   `env:"model"`
 	SysPrompt string   `env:"sys_prompt"`
 	Files     []string `env:"files"`
-	WebSearch bool     `env:"web_search"`
+	WebSearch *bool    `env:"web_search"`
 	Shell     *string  `env:"shell_tool"`
 	Tokens    *int     `env:"max_tokens"`
-	Temp      int      `env:"temperature"`
+	Temp      *float64 `env:"temperature"`
 }
 
 // MARK: Flags
@@ -51,9 +51,9 @@ func (c *Config) Flags() []cli.Flag {
 			Sources:     cli.EnvVars(EnvVar(c, "Tokens")),
 			HideDefault: true,
 		},
-		&cli.IntFlag{
+		&cli.Float64Flag{
 			Name: "temp", Usage: "Set response randomness (0-100)",
-			Category: "config", Destination: &c.Temp,
+			Category: "config", Destination: c.Temp,
 			Sources: cli.EnvVars(EnvVar(c, "Temp")),
 			Value:   1,
 		},
@@ -73,7 +73,7 @@ func (c *Config) Flags() []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name: "web", Usage: "Enable web search",
-			Category: "context", Destination: &c.WebSearch,
+			Category: "context", Destination: c.WebSearch,
 			Sources: cli.EnvVars(EnvVar(c, "WebSearch")),
 		},
 		&cli.StringFlag{
@@ -89,7 +89,7 @@ func (c *Config) Flags() []cli.Flag {
 
 // Support reading a file for the system prompt.
 func (c *Config) resolveSysPrompt(
-	ctx context.Context, cmd *cli.Command, prompt string,
+	_ context.Context, cmd *cli.Command, prompt string,
 ) error {
 	// load prompt from file if path is provided
 	if _, err := os.Stat(prompt); err == nil {
@@ -104,7 +104,7 @@ func (c *Config) resolveSysPrompt(
 
 // Support path globbing for file attachments.
 func (c *Config) resolveFiles(
-	ctx context.Context, cmd *cli.Command, paths []string,
+	_ context.Context, cmd *cli.Command, paths []string,
 ) error {
 	var files []string
 	for _, path := range paths {

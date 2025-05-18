@@ -8,6 +8,7 @@ import (
 
 	"github.com/mohdfareed/gptx-cli/internal/cfg"
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
+	"github.com/mohdfareed/gptx-cli/pkg/openai"
 	"github.com/urfave/cli/v3"
 )
 
@@ -20,27 +21,25 @@ func mainCMD() *cli.Command {
 }
 
 func msgCMD(config *cfg.Config) *cli.Command {
-	var msg string
+	var msg []string
 	return &cli.Command{
 		Name: "msg", Usage: "Send a message to a model",
 		Description: MSG_DESC,
 		Arguments: []cli.Argument{
-			&cli.StringArg{
+			&cli.StringArgs{
 				Name: "message", UsageText: "Message to send",
-				Value: "hello world", Destination: &msg,
+				Value: "hello world", Destination: &msg, Max: -1,
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			prompt, err := PromptUser(*config, cmd.Args().Slice())
+			prompt, err := PromptUser(*config, msg)
 			if err != nil {
 				return fmt.Errorf("prompt: %w", err)
 			}
 
 			// Create the model
-			model, err := gptx.NewModel(config)
-			if err != nil {
-				return fmt.Errorf("model: %w", err)
-			}
+			client := openai.NewOpenAIClient(config.APIKey)
+			model := gptx.NewModel(*config).WithClient(client)
 			printModelEvent(*model.Events)
 			defer println()
 

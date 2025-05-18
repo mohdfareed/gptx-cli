@@ -1,30 +1,9 @@
+package openai
+
 import (
 	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/responses"
 )
-
-// ResponsesModel converts a model string to the proper type.
-func ResponsesModel(model string) responses.ResponsesModel {
-	switch model {
-	case "gpt-4o":
-		return responses.ResponsesModelGpt4o
-	case "gpt-4o-mini":
-		return responses.ResponsesModelGpt4oMini
-	case "gpt-4":
-		return responses.ResponsesModelGpt4
-	case "gpt-4-turbo":
-		return responses.ResponsesModelGpt4Turbo
-	case "gpt-3.5-turbo":
-		return responses.ResponsesModelGpt35Turbo
-	case "o4", "gpt-4.1":
-		return responses.ResponsesModelGpt4o
-	case "o4-mini":
-		return responses.ResponsesModelGpt4oMini
-	default:
-		// Default to the model string as-is, for future models
-		return responses.ResponsesModel(model)
-	}
-}
 
 // MsgData represents the data structure for a message.
 type MsgData = responses.ResponseInputItemUnionParam
@@ -65,7 +44,6 @@ func NewTool(name, desc string, params map[string]any) ToolDef {
 			Name:        name,
 			Description: param.Opt[string]{Value: desc},
 			Parameters:  params,
-			Type:        responses.ToolTypeFunction,
 			Strict:      true,
 		},
 	}

@@ -77,8 +77,11 @@ func terminalPrompt(config cfg.Config) (string, error) {
 	var lines []string
 	for scanner.Scan() {
 		line := scanner.Text()
+		if line == "" {
+			break
+		}
 		lines = append(lines, line)
-	}
+	} // FIXME: can't exit
 	prompt := strings.Join(lines, "\n")
 	return prompt, nil
 }

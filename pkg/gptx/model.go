@@ -10,29 +10,28 @@ import (
 	"github.com/mohdfareed/gptx-cli/internal/tools"
 )
 
+// Client defines a minimal interface for model API operations
+type Client interface {
+	// Generate starts a conversation with the model using the provided configuration
+	// It emits appropriate events through the provided Events manager
+	Generate(ctx context.Context, config Model, prompt string) error
+}
+
 // Model handles interactions with AI models.
 type Model struct {
-	Config *cfg.Config
+	Config cfg.Config
 	Events *events.ModelEvents
-	Tools  *tools.Manager
+	Tools  *tools.Tools
 	client Client
 }
 
 // NewModel creates a new model instance with the given configuration.
-func NewModel(config *cfg.Config) (*Model, error) {
-	// Validate the configuration
-	if config == nil {
-		return nil, fmt.Errorf("config not provided")
-	}
-
+func NewModel(config cfg.Config) *Model {
 	// Create the event manager
 	events := events.NewEventsManager()
 
 	// Create and set the tools manager
-	toolsManager, err := tools.NewManager(*config)
-	if err != nil {
-		return nil, fmt.Errorf("tools: %w", err)
-	}
+	toolsManager := tools.NewTools(config)
 
 	// Subscribe tools to events
 	events.ToolCall.Subscribe(context.Background(), func(call tools.ToolCall) {
@@ -48,7 +47,7 @@ func NewModel(config *cfg.Config) (*Model, error) {
 	model := &Model{
 		Config: config, Events: events, Tools: toolsManager,
 	}
-	return model, nil
+	return model
 }
 
 // WithClient sets a custom client for the model and returns the model.
@@ -63,7 +62,9 @@ func (m *Model) Message(ctx context.Context, prompt string, output io.Writer) er
 		return fmt.Errorf("no client set, use WithClient to set a client")
 	}
 
-	// Emit completion event
-	m.Events.Done.Emit(ctx, "100 tokens")
+	err := m.client.Generate(ctx, *m, prompt)
+	if err != nil {
+		return fmt.Errorf("generate: %w", err)
+	}
 	return nil
 }

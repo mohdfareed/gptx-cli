@@ -51,9 +51,9 @@ echo "-> dev pkg at: $BIN/$(basename "$APP")"
 # update documentation
 echo "updating docs..."
 echo "# gptx" > "cmd/cli.md"
-echo > "cmd/cli.md"
+echo >> "cmd/cli.md"
 if [ "$GOOS" = "windows" ]; then
-  go run -C $BIN/gptx.exe -h >> "cmd/cli.md"
+  ./$BIN/gptx.exe -h >> "cmd/cli.md"
 else
-  go run -C $BIN/gptx -h >> "cmd/cli.md"
+  ./$BIN/gptx -h >> "cmd/cli.md"
 fi
