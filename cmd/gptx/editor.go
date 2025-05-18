@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/mohdfareed/gptx-cli/internal/cfg"
-	"github.com/mohdfareed/gptx-cli/internal/files"
 	"github.com/urfave/cli/v3"
 )
 
@@ -28,30 +27,16 @@ var editor string
 // ============================================================================
 
 // PromptUser gets user message. Input is retrieved in the following order:
-// user input -> editor -> terminal
-func PromptUser(config cfg.Config, args []string) (string, []string, error) {
-	var msg string
-	var err error
-
+// user input -> editor -> terminal -> no input
+func PromptUser(config cfg.Config, args []string) (string, error) {
 	if len(args) > 0 { // user input provided
-		msg = strings.Join(args, " ")
+		return strings.Join(args, " "), nil
 	} else if editor != "" { // editor specified
-		msg, err = editorPrompt(editor)
+		return editorPrompt(editor)
 	} else if isTerm { // running in terminal
-		msg, err = terminalPrompt(config)
+		return terminalPrompt(config)
 	}
-
-	if err != nil {
-		return "", nil, err
-	}
-
-	// Process any tags in the prompt text
-	processed, attachments, err := files.ProcessTags(strings.TrimSpace(msg))
-	if err != nil {
-		return "", nil, fmt.Errorf("process tags: %w", err)
-	}
-
-	return processed, attachments, nil
+	return "", nil
 }
 
 // MARK: Editor

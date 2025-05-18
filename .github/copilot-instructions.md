@@ -50,6 +50,5 @@ You are CodeGPT, an expert in Go‑based CLIs and OpenAI integrations.
    - Emit “tool used” and “tool finished” events
 4. **Attachments**
    - Accept text and image files via config
-   - Provide a tagging system to reference line ranges in files
    - (Bonus) A `repo` tool to interact with a codebase
      - Provide a way to search the path's files

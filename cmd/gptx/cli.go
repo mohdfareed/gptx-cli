@@ -2,29 +2,16 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
 	"github.com/mohdfareed/gptx-cli/internal/cfg"
 	"github.com/mohdfareed/gptx-cli/internal/events"
-	"github.com/urfave/cli/v3"
+	"github.com/mohdfareed/gptx-cli/internal/tools"
 	"golang.org/x/term"
 )
 
 var isTerm bool = term.IsTerminal(int(os.Stdout.Fd()))
-
-type ExitCode int
-
-const (
-	ErrorCode ExitCode = iota
-	ConfigErrorCode
-	ModelErrorCode
-)
-
-func exit(code ExitCode) {
-	os.Exit(int(code))
-}
 
 // MARK: Colors ===============================================================
 
@@ -42,38 +29,16 @@ var (
 	White = "\033[37m"
 )
 
-func deColorize() {
-	colors := []*string{
+func init() {
+	var colors = []*string{
 		&Reset, &Bold, &Dim, &Black, &R, &G, &Y, &B, &M, &C, &White,
 	}
-	for _, color := range colors {
-		*color = ""
-	}
-}
 
-// MARK: CLI ==================================================================
-
-var colorizeFlag = &cli.StringFlag{
-	Name:    "color",
-	Usage:   "colorize output, one of: auto, always, never",
-	Value:   "auto",
-	Sources: cli.EnvVars(cfg.EnvVar(nil, "COLORIZE"), "NO_COLOR"),
-	Validator: func(value string) error {
-		switch value {
-		case "auto":
-			if !(isTerm && os.Getenv("NO_COLOR") == "") {
-				deColorize()
-			}
-		case "never":
-			deColorize()
-		case "always":
-		default:
-			Error(fmt.Errorf("invalid color option: %s", value))
-			exit(ErrorCode)
+	if !isTerm || os.Getenv("NO_COLOR") != "" {
+		for _, color := range colors {
+			*color = ""
 		}
-		return nil
-	},
-	ValidateDefaults: true,
+	}
 }
 
 // MARK: Configuration ========================================================
@@ -106,26 +71,26 @@ func shortenText(text string, maxLen int) string {
 	return text[:maxLen-3] + "..."
 }
 
-func printModelEvent(mgr events.Manager) {
-	mgr.Subscribe(context.TODO(), events.Start, func(data string) {
+func printModelEvent(mgr events.ModelEvents) {
+	mgr.Start.Subscribe(context.TODO(), func(data cfg.Config) {
 		Debug("Model started. Config: %v", data)
 	})
-	mgr.Subscribe(context.TODO(), events.Reply, func(data string) {
+	mgr.Reply.Subscribe(context.TODO(), func(data string) {
 		Print(data)
 	})
-	mgr.Subscribe(context.TODO(), events.InternalReply, func(data string) {
-		PrintErr(data)
+	mgr.Reasoning.Subscribe(context.TODO(), func(data string) {
+		Info("Reasoning: %s", data)
 	})
-	mgr.Subscribe(context.TODO(), events.ToolCall, func(data string) {
+	mgr.ToolCall.Subscribe(context.TODO(), func(data tools.ToolCall) {
 		Info("Tool call: %s", data)
 	})
-	mgr.Subscribe(context.TODO(), events.ToolResult, func(data string) {
+	mgr.ToolResult.Subscribe(context.TODO(), func(data string) {
 		Info("Tool result: %s", data)
 	})
-	mgr.Subscribe(context.TODO(), events.Error, func(err string) {
+	mgr.Error.Subscribe(context.TODO(), func(err error) {
 		Error("Model error: %s", err)
 	})
-	mgr.Subscribe(context.TODO(), events.Done, func(usage string) {
+	mgr.Done.Subscribe(context.TODO(), func(usage string) {
 		Debug("Model done. Usage: %s", usage)
 	})
 }

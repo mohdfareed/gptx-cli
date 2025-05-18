@@ -13,9 +13,6 @@ It allows you to interact with any GPT model directly from the terminal.
 
 - **File Integration**
   - Attach entire files via `--files` flag with glob pattern support
-  - Include file snippets directly in your prompts with tags:
-    - `@file(path)` - Include the entire file
-    - `@file(path:start-end)` - Include specific lines from a file
 
 - **Event System**
   - Simple channel-based event system for model interaction

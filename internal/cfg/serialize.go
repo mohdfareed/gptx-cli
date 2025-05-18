@@ -3,9 +3,9 @@ package cfg
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
 )
+
+// TODO: Refactor to delete this file.
 
 // ToEnvMap converts a Config to a map of environment variables
 // using JSON as an intermediate representation.
@@ -29,38 +29,40 @@ func (c *Config) ToEnvMap() map[string]string {
 		envKey := EnvVar(c, key)
 
 		// Convert the value to a string
-		var strValue string // REVIEW: is fmt.Sprintf("%v", v) enough?
-		switch v := value.(type) {
-		case string:
-			strValue = v
-		case bool:
-			strValue = strconv.FormatBool(v)
-		case int:
-			strValue = strconv.Itoa(v)
-		case float64:
-			strValue = strconv.FormatFloat(v, 'f', -1, 64)
-		default:
-			strValue = fmt.Sprintf("%v", v) // Fallback to default string conversion
+		strValue := fmt.Sprintf("%v", value)
 
-		// Handle slice types
-		case []any:
-			strSlice := make([]string, len(v))
-			for i, item := range v {
-				switch item := item.(type) {
-				case string:
-					strSlice[i] = item
-				case bool:
-					strSlice[i] = strconv.FormatBool(item)
-				case int:
-					strSlice[i] = strconv.Itoa(item)
-				case float64:
-					strSlice[i] = strconv.FormatFloat(item, 'f', -1, 64)
-				default:
-					strSlice[i] = fmt.Sprintf("%v", item) // Fallback to default string conversion
-				}
-			}
-			strValue = strings.Join(strSlice, ",")
-		}
+		// var strValue string // REVIEW: is fmt.Sprintf("%v", v) enough?
+		// switch v := value.(type) {
+		// case string:
+		// 	strValue = v
+		// case bool:
+		// 	strValue = strconv.FormatBool(v)
+		// case int:
+		// 	strValue = strconv.Itoa(v)
+		// case float64:
+		// 	strValue = strconv.FormatFloat(v, 'f', -1, 64)
+		// default:
+		// 	strValue = fmt.Sprintf("%v", v) // Fallback to default string conversion
+
+		// // Handle slice types
+		// case []any:
+		// 	strSlice := make([]string, len(v))
+		// 	for i, item := range v {
+		// 		switch item := item.(type) {
+		// 		case string:
+		// 			strSlice[i] = item
+		// 		case bool:
+		// 			strSlice[i] = strconv.FormatBool(item)
+		// 		case int:
+		// 			strSlice[i] = strconv.Itoa(item)
+		// 		case float64:
+		// 			strSlice[i] = strconv.FormatFloat(item, 'f', -1, 64)
+		// 		default:
+		// 			strSlice[i] = fmt.Sprintf("%v", item) // Fallback to default string conversion
+		// 		}
+		// 	}
+		// 	strValue = strings.Join(strSlice, ",")
+		// }
 
 		// Add to result map if not empty
 		if strValue != "" {

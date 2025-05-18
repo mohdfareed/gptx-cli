@@ -13,7 +13,6 @@ func main() {
 	cmd := mainCMD()        // cli app
 
 	cmd.Flags = append([]cli.Flag{
-		colorizeFlag,
 		debugFlag,
 		silentFlag,
 		editorFlag,
@@ -28,6 +27,6 @@ func main() {
 	// run the app
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
 		Error(err)
-		exit(ModelErrorCode)
+		os.Exit(1)
 	}
 }

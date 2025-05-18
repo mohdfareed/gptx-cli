@@ -31,11 +31,10 @@ func msgCMD(config *cfg.Config) *cli.Command {
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			prompt, attachments, err := PromptUser(*config, cmd.Args().Slice())
+			prompt, err := PromptUser(*config, cmd.Args().Slice())
 			if err != nil {
 				return fmt.Errorf("prompt: %w", err)
 			}
-			config.Files = append(config.Files, attachments...)
 
 			// Create the model
 			model, err := gptx.NewModel(config)

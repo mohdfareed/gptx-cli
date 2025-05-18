@@ -9,9 +9,6 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CATEGORY is the category for configuration flags.
-const CATEGORY = "model config"
-
 // SYS_PROMPT is the default system prompt template.
 const SYS_PROMPT string = `
 You are '%s', a CLI app. You are an extension of the command line.
@@ -24,9 +21,8 @@ type Config struct {
 	Model     string   `env:"model"`
 	SysPrompt string   `env:"sys_prompt"`
 	Files     []string `env:"files"`
-	Tools     []string `env:"tools"`
-	Repo      string   `env:"tools_repo"`
-	Shell     string   `env:"tools_shell"`
+	WebSearch bool     `env:"web_search"`
+	Shell     *string  `env:"shell_tool"`
 	Tokens    *int     `env:"max_tokens"`
 	Temp      int      `env:"temperature"`
 }
@@ -38,58 +34,52 @@ type Config struct {
 func (c *Config) Flags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name: "api-key", Usage: "Set Platform API key",
-			Category: CATEGORY, Destination: &c.APIKey,
+			Name: "key", Usage: "Set Platform API key",
+			Category: "config", Destination: &c.APIKey,
 			Sources:  cli.EnvVars(EnvVar(c, "APIKey")),
 			Required: true,
 		},
 		&cli.StringFlag{
 			Name: "model", Usage: "Select model to use",
-			Category: CATEGORY, Destination: &c.Model,
+			Category: "config", Destination: &c.Model,
 			Sources: cli.EnvVars(EnvVar(c, "Model")),
 			Value:   "o4-mini",
 		},
+		&cli.IntFlag{
+			Name: "max", Usage: "Limit response length",
+			Category: "config", Destination: c.Tokens,
+			Sources:     cli.EnvVars(EnvVar(c, "Tokens")),
+			HideDefault: true,
+		},
+		&cli.IntFlag{
+			Name: "temp", Usage: "Set response randomness (0-100)",
+			Category: "config", Destination: &c.Temp,
+			Sources: cli.EnvVars(EnvVar(c, "Temp")),
+			Value:   1,
+		},
 		&cli.StringFlag{
-			Name: "sys-prompt", Usage: "Set system prompt",
-			Category: CATEGORY, Destination: &c.SysPrompt,
+			Name: "prompt", Usage: "Set system prompt",
+			Category: "config", Destination: &c.SysPrompt,
 			Sources: cli.EnvVars(EnvVar(c, "SysPrompt")),
 			Value:   fmt.Sprintf(SYS_PROMPT, AppName), Aliases: []string{"s"},
 			TakesFile: true, Action: c.resolveSysPrompt, HideDefault: true,
 		},
 		&cli.StringSliceFlag{
 			Name: "files", Usage: "Attach files to the message",
-			Category: CATEGORY, Destination: &c.Files,
+			Category: "context", Destination: &c.Files,
 			Sources: cli.EnvVars(EnvVar(c, "Files")),
 			Value:   []string{}, Aliases: []string{"f"},
 			TakesFile: true, Action: c.resolveFiles,
 		},
-		&cli.StringSliceFlag{
-			Name: "tools", Usage: "Enable specific tools",
-			Category: CATEGORY, Destination: &c.Tools,
-			Sources: cli.EnvVars(EnvVar(c, "Tools")),
-			Value:   []string{}, Aliases: []string{"t"},
+		&cli.BoolFlag{
+			Name: "web", Usage: "Enable web search",
+			Category: "context", Destination: &c.WebSearch,
+			Sources: cli.EnvVars(EnvVar(c, "WebSearch")),
 		},
 		&cli.StringFlag{
-			Name: "shell", Usage: "Set shell for the model",
-			Category: CATEGORY, Destination: &c.Shell,
+			Name: "shell", Usage: "Set the shell for the model to use",
+			Category: "context", Destination: c.Shell,
 			Sources: cli.EnvVars(EnvVar(c, "Shell")),
-		},
-		&cli.StringFlag{
-			Name: "repo", Usage: "Root path for repository exploration",
-			Category: CATEGORY, Destination: &c.Repo,
-			Sources: cli.EnvVars(EnvVar(c, "Repo")),
-		},
-		&cli.IntFlag{
-			Name: "max-tokens", Usage: "Limit response length",
-			Category: CATEGORY, Destination: c.Tokens,
-			Sources:     cli.EnvVars(EnvVar(c, "Tokens")),
-			HideDefault: true,
-		},
-		&cli.IntFlag{
-			Name: "temp", Usage: "Set response randomness (0-100)",
-			Category: CATEGORY, Destination: &c.Temp,
-			Sources: cli.EnvVars(EnvVar(c, "Temp")),
-			Value:   1,
 		},
 	}
 }
@@ -97,6 +87,7 @@ func (c *Config) Flags() []cli.Flag {
 // MARK: Helper Actions
 // ============================================================================
 
+// Support reading a file for the system prompt.
 func (c *Config) resolveSysPrompt(
 	ctx context.Context, cmd *cli.Command, prompt string,
 ) error {
@@ -111,6 +102,7 @@ func (c *Config) resolveSysPrompt(
 	return nil
 }
 
+// Support path globbing for file attachments.
 func (c *Config) resolveFiles(
 	ctx context.Context, cmd *cli.Command, paths []string,
 ) error {

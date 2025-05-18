@@ -11,13 +11,13 @@ import (
 	"github.com/mohdfareed/gptx-cli/internal/cfg"
 )
 
-const ShellToolName = "shell"
+const ShellToolDef = "shell"
 const ShellToolDescription = `Execute shell commands.
 Use this for file operations, system information, or any command-line tasks.
 `
 
 var shellTool = ToolDef{
-	Name: ShellToolName,
+	Name: ShellToolDef,
 	Desc: ShellToolDescription,
 	Params: map[string]any{
 		"shell": "auto",
@@ -26,9 +26,9 @@ var shellTool = ToolDef{
 	Handler: shellHandler,
 }
 
-func ShellTool(config cfg.Config) ToolDef {
+func NewShellTool(config cfg.Config) ToolDef {
 	tool := shellTool
-	if config.Shell == "auto" {
+	if *config.Shell == "auto" {
 		tool.Params["shell"] = getDefaultShell()
 	} else {
 		tool.Params["shell"] = config.Shell
