@@ -19,14 +19,14 @@ You behave and respond like a command line tool. Be concise.
 
 // Config stores application configuration settings.
 type Config struct {
-	APIKey    string   `env:"api_key"`    // OpenAI API key
-	Model     string   `env:"model"`      // Model name
-	SysPrompt string   `env:"sys_prompt"` // System prompt
-	Files     []string `env:"files"`      // Attached files
-	WebSearch *bool    `env:"web_search"` // Enable web search
-	Shell     *string  `env:"shell_tool"` // Shell command
-	Tokens    *int     `env:"max_tokens"` // Max tokens
-	Temp      *float64 `env:"temperature"`// Temperature (controls randomness)
+	APIKey    string   // OpenAI API key
+	Model     string   // Model name
+	SysPrompt string   // System prompt
+	Files     []string // Attached files
+	WebSearch *bool    // Enable web search
+	Shell     *string  // Shell command
+	Tokens    *int     // Max tokens
+	Temp      *float64 // Temperature (controls randomness)
 }
 
 // MARK: Flags
@@ -38,50 +38,53 @@ func (c *Config) Flags() []cli.Flag {
 		&cli.StringFlag{
 			Name: "key", Usage: "Set Platform API key",
 			Category: "config", Destination: &c.APIKey,
-			Sources:  cli.EnvVars(EnvVar(c, "APIKey")),
+			Sources:  cli.EnvVars(EnvVarPrefix + "API_KEY"),
 			Required: true,
 		},
 		&cli.StringFlag{
 			Name: "model", Usage: "Select model to use",
 			Category: "config", Destination: &c.Model,
-			Sources: cli.EnvVars(EnvVar(c, "Model")),
+			Sources: cli.EnvVars(EnvVarPrefix + "MODEL"),
 			Value:   "o4-mini",
 		},
+		// CONFIG
 		&cli.IntFlag{
 			Name: "max", Usage: "Limit response length",
 			Category: "config", Destination: c.Tokens,
-			Sources:     cli.EnvVars(EnvVar(c, "Tokens")),
+			Sources:     cli.EnvVars(EnvVarPrefix + "MAX_TOKENS"),
 			HideDefault: true,
 		},
 		&cli.Float64Flag{
 			Name: "temp", Usage: "Set response randomness (0-100)",
 			Category: "config", Destination: c.Temp,
-			Sources: cli.EnvVars(EnvVar(c, "Temp")),
+			Sources: cli.EnvVars(EnvVarPrefix + "TEMP"),
 			Value:   1,
 		},
+		// CONTEXT
 		&cli.StringFlag{
 			Name: "prompt", Usage: "Set system prompt",
 			Category: "config", Destination: &c.SysPrompt,
-			Sources: cli.EnvVars(EnvVar(c, "SysPrompt")),
+			Sources: cli.EnvVars(EnvVarPrefix + "SYS_PROMPT"),
 			Value:   fmt.Sprintf(SYS_PROMPT, AppName), Aliases: []string{"s"},
 			TakesFile: true, Action: c.resolveSysPrompt, HideDefault: true,
 		},
 		&cli.StringSliceFlag{
 			Name: "files", Usage: "Attach files to the message",
 			Category: "context", Destination: &c.Files,
-			Sources: cli.EnvVars(EnvVar(c, "Files")),
+			Sources: cli.EnvVars(EnvVarPrefix + "FILES"),
 			Value:   []string{}, Aliases: []string{"f"},
 			TakesFile: true, Action: c.resolveFiles,
 		},
+		// TOOLS
 		&cli.BoolFlag{
 			Name: "web", Usage: "Enable web search",
 			Category: "context", Destination: c.WebSearch,
-			Sources: cli.EnvVars(EnvVar(c, "WebSearch")),
+			Sources: cli.EnvVars(EnvVarPrefix + "WEB_SEARCH"),
 		},
 		&cli.StringFlag{
 			Name: "shell", Usage: "Set the shell for the model to use",
 			Category: "context", Destination: c.Shell,
-			Sources: cli.EnvVars(EnvVar(c, "Shell")),
+			Sources: cli.EnvVars(EnvVarPrefix + "SHELL"),
 		},
 	}
 }

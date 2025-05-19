@@ -56,21 +56,6 @@ func formatKeyValue(key string, value string) string {
 	return keyName + equal + value
 }
 
-func maskAPIKey(key string) string {
-	if len(key) > 16 {
-		return key[:8] + "..." + key[len(key)-8:]
-	}
-	return key
-}
-
-func shortenText(text string, maxLen int) string {
-	text = strings.ReplaceAll(text, "\n", " ")
-	if len(text) <= maxLen {
-		return text
-	}
-	return text[:maxLen-3] + "..."
-}
-
 func printModelEvent(mgr events.ModelEvents) {
 	mgr.Start.Subscribe(context.TODO(), func(data cfg.Config) {
 		Debug("Model started. Config: %v", data)

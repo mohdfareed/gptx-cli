@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/mohdfareed/gptx-cli/internal/cfg"
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
@@ -66,14 +67,14 @@ func configCMD(config *cfg.Config) *cli.Command {
 		Description: CONFIG_DESC,
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			// Convert config to a map for display
-			configMap := config.ToEnvMap()
-			configMap["GPTX_API_KEY"] = maskAPIKey(config.APIKey)
-			configMap["GPTX_SYS_PROMPT"] = shortenText(config.SysPrompt, 40)
+			configMap := cfg.EnvMap()
 
 			// Sort keys for consistent output
 			keys := make([]string, 0, len(configMap))
 			for k := range configMap {
-				keys = append(keys, k)
+				if strings.HasPrefix(k, cfg.EnvVarPrefix) {
+					keys = append(keys, k)
+				}
 			}
 			sort.Strings(keys)
 
@@ -83,7 +84,7 @@ func configCMD(config *cfg.Config) *cli.Command {
 			}
 
 			// Show source files
-			PrintErr("\nConfiguration Files:\n")
+			PrintErr(Dim + Bold + "Config Files:\n" + Reset)
 			for _, file := range cfg.ConfigFiles() {
 				PrintErr("- %s\n", file)
 			}

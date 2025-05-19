@@ -20,7 +20,7 @@ var editorFlag = &cli.StringFlag{
 	Name:        "editor",
 	Usage:       "Use specified text editor for input",
 	Aliases:     []string{"e"},
-	Sources:     cli.EnvVars(cfg.EnvVar(nil, "EDITOR"), "EDITOR"),
+	Sources:     cli.EnvVars(cfg.EnvVarPrefix+"EDITOR", "EDITOR"),
 	Destination: &editor,
 }
 

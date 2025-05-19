@@ -99,7 +99,7 @@ var (
 		Usage:   "Show debug messages",
 		Aliases: []string{"v"},
 		Sources: cli.EnvVars(
-			cfg.EnvVar(nil, "VERBOSE"), cfg.EnvVar(nil, "DEBUG"),
+			cfg.EnvVarPrefix+"VERBOSE", cfg.EnvVarPrefix+"DEBUG",
 		),
 		Destination: &verbose,
 	}
@@ -109,7 +109,7 @@ var (
 		Usage:   "Show only error messages",
 		Aliases: []string{"silent", "q"},
 		Sources: cli.EnvVars(
-			cfg.EnvVar(nil, "QUIET"), cfg.EnvVar(nil, "SILENT"),
+			cfg.EnvVarPrefix+"QUIET", cfg.EnvVarPrefix+"SILENT",
 		),
 		Value:       !isTerm,
 		Destination: &silent,

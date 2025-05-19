@@ -2,10 +2,8 @@
 package cfg
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -13,6 +11,9 @@ import (
 
 // AppName is the application name.
 const AppName string = "gptx"
+
+// AppName is the application name.
+const EnvVarPrefix string = "GPTX_"
 
 // AppDir is the user config directory for the app.
 var AppDir string = func() string {
@@ -23,26 +24,16 @@ var AppDir string = func() string {
 	return filepath.Join(configDir, AppName)
 }()
 
-// EnvVar returns the env var name for a config field.
-// Example: For field "APIKey" with tag `env:"api_key"`, returns "GPTX_API_KEY"
-func EnvVar(obj *Config, field string) string {
-	var tag string
-	if obj != nil {
-		// Use reflection to get the field tag
-		t := reflect.TypeOf(*obj)
-		f, found := t.FieldByName(field)
-		if !found {
-			panic(fmt.Sprintf("field '%s' not found in type Config", field))
+// EnvMap returns the current environment variables as a map.
+func EnvMap() map[string]string {
+	m := make(map[string]string)
+	for _, kv := range os.Environ() {
+		parts := strings.SplitN(kv, "=", 2)
+		if len(parts) == 2 && parts[1] != "" {
+			m[parts[0]] = parts[1]
 		}
-		tag = f.Tag.Get("env")
-	} else {
-		tag = field // Use the field name directly
 	}
-
-	// Format as GPTX_FIELD_NAME (e.g., GPTX_API_KEY)
-	prefix := strings.ToUpper(AppName)
-	postfix := strings.ToUpper(tag)
-	return fmt.Sprintf("%s_%s", prefix, postfix)
+	return m
 }
 
 // LoadConfigFiles loads .gptx files in Git-like fashion:
