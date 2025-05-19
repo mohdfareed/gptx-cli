@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/mohdfareed/gptx-cli/internal/cfg"
@@ -28,7 +27,7 @@ func msgCMD(config *cfg.Config) *cli.Command {
 		Description: MSG_DESC,
 		Arguments: []cli.Argument{
 			&cli.StringArgs{
-				Name: "message", UsageText: "Message to send",
+				Name: "prompt", UsageText: "Message to send",
 				Value: "hello world", Destination: &msg, Max: -1, // Accept multiple arguments
 			},
 		},
@@ -40,7 +39,6 @@ func msgCMD(config *cfg.Config) *cli.Command {
 			}
 
 			// Run the model with the prompt
-			defer println() // Add a newline after completion
 			if err := runModel(ctx, *config, prompt); err != nil {
 				return err
 			}
@@ -57,18 +55,19 @@ func configCMD() *cli.Command {
 			// Convert config to a map for display
 			configMap := cfg.EnvMap()
 
-			// Sort keys for consistent output
-			keys := make([]string, 0, len(configMap))
-			for k := range configMap {
-				if strings.HasPrefix(k, cfg.EnvVarPrefix) {
-					keys = append(keys, k)
-				}
-			}
-			sort.Strings(keys)
-
 			// Print each key-value pair
-			for _, key := range keys {
-				Print(formatKeyValue(key, configMap[key]) + "\n")
+			for _, key := range configMap {
+				keyName := Bold + Dim + key + Reset
+				value := configMap[key]
+
+				// Multiline values need quotes (escape existing quotes)
+				if strings.Contains(value, "\n") {
+					quote := Y + "\"" + Reset
+					str := strings.ReplaceAll(value, "\"", "\\\"")
+					value = quote + str + quote
+				}
+
+				Print(keyName + M + "=" + Reset + value + "\n")
 			}
 
 			// Show source files

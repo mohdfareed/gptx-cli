@@ -8,7 +8,6 @@ import (
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
-	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/responses"
 )
 
@@ -41,18 +40,22 @@ func (c *OpenAIClient) Generate(ctx context.Context, request gptx.Request) error
 	}
 	msgs := []MsgData{msg}
 
-	// Create the request using our helper function
-	req := NewRequest(request, msgs, c.userID)
+	// Convert tool definitions to OpenAI format
+	var openAITools []ToolDef
+	if len(request.ToolDefs) > 0 {
+		// Convert tools from registry to OpenAI format
+		for _, def := range request.ToolDefs {
+			openAITools = append(openAITools, NewTool(def))
+		}
+	}
 
-	// Apply optional parameters if set
-	req.Temperature = param.Opt[float64]{Value: request.Config.Temp}
-	// if request.Config.Temp != nil {
-	// 	req.Temperature = param.Opt[float64]{Value: *request.Config.Temp}
-	// }
-	req.MaxOutputTokens = param.Opt[int64]{Value: int64(request.Config.Tokens)}
-	// if request.Config.Tokens != nil {
-	// 	req.MaxOutputTokens = param.Opt[int64]{Value: int64(*request.Config.Tokens)}
-	// }
+	if request.Config.WebSearch {
+		// Add web search tool if enabled
+		openAITools = append(openAITools, WebSearch)
+	}
+
+	// Create the request using our helper function
+	req := NewRequest(request, msgs, c.userID, openAITools)
 
 	// Start the streaming request
 	stream := c.client.Responses.NewStreaming(ctx, req)
@@ -75,7 +78,7 @@ func (c *OpenAIClient) Generate(ctx context.Context, request gptx.Request) error
 		}
 
 		// Process streaming events
-		c.handleStreamEvent(ctx, data, request)
+		c.handleStreamEvent(data, request)
 	}
 
 	// Check for errors
@@ -111,6 +114,5 @@ func (c *OpenAIClient) Generate(ctx context.Context, request gptx.Request) error
 	if request.Callbacks.OnDone != nil {
 		request.Callbacks.OnDone(getUsageJSON(response.Usage))
 	}
-
 	return nil
 }

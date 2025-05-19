@@ -2,7 +2,7 @@
 package openai
 
 import (
-	"github.com/mohdfareed/gptx-cli/internal/cfg"
+	"github.com/mohdfareed/gptx-cli/internal/tools"
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
 	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/responses"
@@ -11,7 +11,7 @@ import (
 
 // NewRequest creates a request for the OpenAI Responses API.
 func NewRequest(
-	request gptx.Request, msgs []MsgData, userID string,
+	request gptx.Request, msgs []MsgData, userID string, tools []ToolDef,
 ) ModelRequest {
 	// Create the input history from messages
 	history := responses.ResponseNewParamsInputUnion{OfInputItemList: msgs}
@@ -21,7 +21,7 @@ func NewRequest(
 		// Core parameters
 		Model:        request.Config.Model,                               // Which model to use (e.g., "o4-mini")
 		Input:        history,                                            // Message history
-		Tools:        modelToolsToOpenAI(request.Config),                 // Available tools
+		Tools:        tools,                                              // Available tools from registry
 		Instructions: param.Opt[string]{Value: request.Config.SysPrompt}, // System prompt
 		User:         param.Opt[string]{Value: userID},                   // User identifier
 
@@ -58,53 +58,19 @@ func NewRequest(
 }
 
 // NewTool creates a new tool definition.
-func NewTool(name, desc string, params map[string]any) ToolDef {
+func NewTool(tool tools.ToolDef) ToolDef {
 	return responses.ToolUnionParam{
 		OfFunction: &responses.FunctionToolParam{
-			Name:        name,
-			Description: param.Opt[string]{Value: desc},
-			Parameters:  params,
-			Strict:      true,
+			Name:        tool.Name,
+			Description: param.Opt[string]{Value: tool.Desc},
+			// Parameters:  tool.Params,
+			Parameters: map[string]any{
+				"type":                 "object",
+				"properties":           tool.Params,
+				"required":             tool.Required,
+				"additionalProperties": false,
+			},
+			Strict: true,
 		},
 	}
-}
-
-// WebSearchToolDef is the identifier for the web search tool.
-const WebSearchToolDef = "web-search"
-
-// modelToolsToOpenAI converts tool configuration to OpenAI API format.
-// This isolates the OpenAI-specific tool formatting from the rest of the app.
-func modelToolsToOpenAI(config cfg.Config) []responses.ToolUnionParam {
-	var toolDefs []responses.ToolUnionParam
-
-	// Add web search if enabled
-	if config.WebSearch {
-		toolDefs = append(toolDefs, WebSearch)
-	}
-
-	// Add shell tool if enabled
-	if config.Shell != "" {
-		shellTool := responses.ToolUnionParam{
-			OfFunction: &responses.FunctionToolParam{
-				Name:        "shell",
-				Description: param.Opt[string]{Value: "Execute shell commands."},
-				Parameters: map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						"cmd": map[string]any{
-							"type":        "string",
-							"description": "The command to execute",
-						},
-					},
-					"required": []string{
-						"cmd",
-					},
-					"additionalProperties": false,
-				},
-				Strict: true,
-			},
-		}
-		toolDefs = append(toolDefs, shellTool)
-	}
-	return toolDefs
 }

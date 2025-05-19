@@ -29,11 +29,13 @@ type Model struct {
 type ModelOption func(*Model)
 
 // NewModel creates a new model with the given configuration and options.
-func NewModel(config cfg.Config, options ...ModelOption) *Model {
+func NewModel(
+	config cfg.Config, tools *tools.Registry, options ...ModelOption,
+) *Model {
 	// Create a new model with default configuration
 	model := &Model{
 		config:       config,
-		toolRegistry: tools.NewRegistry(),
+		toolRegistry: tools,
 	}
 
 	// Apply all options
@@ -75,6 +77,7 @@ func (m *Model) Tools() []tools.ToolDef {
 }
 
 // Message sends a message to the model and processes the response through callbacks.
+
 func (m *Model) Message(ctx context.Context, prompt string) error {
 	if m.client == nil {
 		return fmt.Errorf("no client set, use WithClient option")
@@ -82,16 +85,28 @@ func (m *Model) Message(ctx context.Context, prompt string) error {
 
 	// Create the tool handler function
 	toolHandler := func(ctx context.Context, name string, params string) (string, error) {
+		// Notify about the tool call
+		if m.callbacks.OnToolCall != nil {
+			toolCall := tools.ToolCall{Name: name, Params: params}
+			m.callbacks.OnToolCall(toolCall)
+		}
+
+		// Execute the tool
 		result, err := m.toolRegistry.Execute(ctx, tools.ToolCall{
 			Name: name, Params: params,
 		})
-		if err != nil && m.callbacks.OnError != nil {
-			m.callbacks.OnError(err)
+
+		// Handle errors
+		if err != nil {
+			return "", err // Error will be reported by client
 		}
+
+		// Report tool results through callback
 		if m.callbacks.OnToolResult != nil {
 			m.callbacks.OnToolResult(result)
 		}
-		return result, err
+
+		return result, nil
 	}
 
 	// Create callbacks for the client
@@ -101,6 +116,9 @@ func (m *Model) Message(ctx context.Context, prompt string) error {
 		OnReasoning: m.callbacks.OnReasoning,
 		OnError:     m.callbacks.OnError,
 		OnDone:      m.callbacks.OnDone,
+		OnWebSearch: func() {
+			m.callbacks.OnToolCall(tools.ToolCall{Name: "web_search"})
+		},
 	}
 
 	// Send the request to the client
@@ -109,6 +127,7 @@ func (m *Model) Message(ctx context.Context, prompt string) error {
 		Prompt:      prompt,
 		ToolHandler: toolHandler,
 		Callbacks:   clientCallbacks,
+		ToolDefs:    m.Tools(), // Pass tool definitions to client
 	}
 
 	// Let the client process the request

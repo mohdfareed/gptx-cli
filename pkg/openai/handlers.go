@@ -3,7 +3,7 @@ package openai
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 
 	"github.com/mohdfareed/gptx-cli/pkg/gptx"
 	"github.com/openai/openai-go/responses"
@@ -18,15 +18,14 @@ import (
 func getUsageJSON(usage responses.ResponseUsage) string {
 	// Since we can't directly access the fields easily, just return
 	// the raw JSON if it's available or empty JSON if it's not
-	rawJSON := usage.RawJSON()
-	if rawJSON == "" {
-		return "{}"
+	rawJSON, err := json.MarshalIndent(usage, "", "  ")
+	if err != nil {
+		return ""
 	}
-	return rawJSON
+	return string(rawJSON)
 }
 
 func (c *OpenAIClient) handleStreamEvent(
-	ctx context.Context,
 	event responses.ResponseStreamEventUnion,
 	request gptx.Request,
 ) {
@@ -71,20 +70,8 @@ func (c *OpenAIClient) handleCompleteResponse(
 			}
 
 		case responses.ResponseFunctionWebSearch:
-			// Handle web search results
-			_ = item.AsWebSearchCall() // We access the data but don't need to use it directly
-			if request.ToolHandler != nil {
-				// Extract the search query from the function call
-				// The web search data doesn't directly expose a Query field in the response
-				// Instead, we pass an empty string to the handler which will handle this special case
-				result, err := request.ToolHandler(ctx, WebSearchToolDef, "")
-				if err != nil {
-					return fmt.Errorf("web search: %w", err)
-				}
-				if request.Callbacks.OnReply != nil {
-					request.Callbacks.OnReply(result)
-				}
-			}
+			// Signal that a web search is happening
+			request.Callbacks.OnWebSearch()
 
 		case responses.ResponseFunctionToolCall:
 			// Handle regular tool calls
@@ -92,9 +79,10 @@ func (c *OpenAIClient) handleCompleteResponse(
 			if request.ToolHandler != nil {
 				result, err := request.ToolHandler(ctx, toolCall.Name, toolCall.Arguments)
 				if err != nil {
-					return fmt.Errorf("tool %s: %w", toolCall.Name, err)
+					// Pass the error up without wrapping it again to avoid duplicate messages
+					return err
 				}
-				if request.Callbacks.OnReply != nil {
+				if request.Callbacks.OnReply != nil && result != "" {
 					request.Callbacks.OnReply(result)
 				}
 			}

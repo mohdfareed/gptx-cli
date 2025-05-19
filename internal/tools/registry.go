@@ -13,10 +13,11 @@ type Tool func(ctx context.Context, params map[string]any) (string, error)
 
 // ToolDef defines a tool's metadata and implementation.
 type ToolDef struct {
-	Name    string         // Tool identifier
-	Desc    string         // Description
-	Params  map[string]any // Parameter schema
-	Handler Tool           // Implementation
+	Name     string         // Tool identifier
+	Desc     string         // Description
+	Params   map[string]any // Parameter schema
+	Required []string       // Required parameters
+	Handler  Tool           // Implementation
 }
 
 // ToolCall represents a request from the model to use a tool.
@@ -24,10 +25,6 @@ type ToolCall struct {
 	Name   string // Tool name
 	Params string // JSON parameters
 }
-
-// WebSearchToolDef is the identifier for the web search tool.
-// This tool is handled directly by the OpenAI API client rather than locally.
-const WebSearchToolDef = "web-search"
 
 // Registry manages tool definitions and execution.
 // It provides a unified interface for:

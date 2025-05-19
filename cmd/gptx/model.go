@@ -22,7 +22,7 @@ func setupCallbacks() events.Callbacks {
 			Error("Model error: %s\n", err)
 		}).
 		WithDoneHandler(func(usage string) {
-			Info("Model done. Usage: %s\n", usage)
+			Info("Usage: %s\n", usage)
 		}).
 		// Output events
 		WithReplyHandler(func(text string) {
@@ -33,10 +33,10 @@ func setupCallbacks() events.Callbacks {
 		}).
 		// Tool events
 		WithToolCallHandler(func(call tools.ToolCall) {
-			PrintErr(M+"Tool call: %s(%s)\n"+Reset, call.Name, call.Params)
+			Info(M+"Tool call: %s(%s)\n"+Reset, call.Name, call.Params)
 		}).
 		WithToolResultHandler(func(result string) {
-			PrintErr(M+"Tool result: %s\n"+Reset, result)
+			Info(M+"Tool result: %s\n"+Reset, result)
 		}).
 		Build()
 }
@@ -63,7 +63,7 @@ func createModel(config cfg.Config) *gptx.Model {
 
 	// Create the model
 	model := gptx.NewModel(
-		config,
+		config, registry,
 		gptx.WithClient(client),
 		gptx.WithCallbacks(callbacks),
 	)

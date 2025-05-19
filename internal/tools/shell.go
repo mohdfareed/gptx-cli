@@ -33,27 +33,19 @@ func NewShellTool(config cfg.Config) ToolDef {
 		Name: ShellToolDef,
 		Desc: ShellToolDescription,
 		Params: map[string]any{
-			"type": "object",
-			"properties": map[string]any{
-				"cmd": map[string]any{
-					"type":        "string",
-					"description": "The command to execute",
-				},
+			"cmd": map[string]any{
+				"type":        "string",
+				"description": "The command to execute",
 			},
-			"required": []string{"cmd"},
 		},
+		Required: []string{"cmd"},
+
 		Handler: func(ctx context.Context, params map[string]any) (string, error) {
-			// Extract command from params
 			cmd, ok := params["cmd"].(string)
 			if !ok {
 				return "", fmt.Errorf("shell: missing required parameter 'cmd'")
 			}
-
-			// Execute the command with the configured shell
-			return shellHandler(map[string]any{
-				"shell": shell,
-				"cmd":   cmd,
-			})
+			return shellHandler(shell, cmd)
 		},
 	}
 }
@@ -68,10 +60,7 @@ func NewShellTool(config cfg.Config) ToolDef {
 // Returns:
 // - The command output as a string
 // - An error if the command fails or the shell is not available
-func shellHandler(params map[string]any) (string, error) {
-	shell := params["shell"].(string)
-	cmd := params["cmd"].(string)
-
+func shellHandler(shell string, cmd string) (string, error) {
 	// Check if the shell is available
 	if _, err := exec.LookPath(shell); err != nil {
 		return "", fmt.Errorf("shell not found: %s", shell)
