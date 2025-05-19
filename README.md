@@ -16,14 +16,15 @@ It allows you to interact with any GPT model directly from the terminal.
   - Include specific file sections with the `@file(path:start-end)` tag syntax
   - Support for image attachments (jpg, jpeg, png, svg)
 
-- **Event System**
-  - Channel-based event system for model interaction
-  - Events for model responses, tool usage, and completions
-  - Real-time visibility into model actions
+- **Callback System**
+  - Simple callback-based event system for model interaction
+  - Callbacks for model responses, tool usage, and completions
+  - Real-time visibility into model actions with minimal overhead
 
 - **Tools Support**
+  - Unified tool registry system for easy extensibility
   - Built-in tools for web search and shell commands
-  - Event emissions for tool usage and results
+  - Clean API for adding custom tools
 
 - **Editor Support**
   - Use your favorite editor for writing prompts with `--editor`

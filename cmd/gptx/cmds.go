@@ -4,13 +4,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
 	"github.com/mohdfareed/gptx-cli/internal/cfg"
-	"github.com/mohdfareed/gptx-cli/pkg/gptx"
-	"github.com/mohdfareed/gptx-cli/pkg/openai"
 	"github.com/urfave/cli/v3"
 )
 
@@ -42,19 +39,10 @@ func msgCMD(config *cfg.Config) *cli.Command {
 				return fmt.Errorf("prompt: %w", err)
 			}
 
-			// Create and configure the model:
-			// 1. Create the OpenAI API client with authentication
-			// 2. Create the model with the user's config
-			// 3. Wire up event handling to display progress and results
-			client := openai.NewOpenAIClient(config.APIKey)
-			model := gptx.NewModel(*config).WithClient(client)
-			printModelEvents(*model.Events)
+			// Run the model with the prompt
 			defer println() // Add a newline after completion
-
-			// Send the message to the model and get the response
-			err = model.Message(ctx, prompt, os.Stdout)
-			if err != nil {
-				return fmt.Errorf("model: %w", err)
+			if err := runModel(ctx, *config, prompt); err != nil {
+				return err
 			}
 			return nil
 		},

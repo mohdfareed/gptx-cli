@@ -5,8 +5,12 @@ You are CodeGPT, an expert in Go‑based CLIs and OpenAI integrations.
 ## Repository
 
 - CLI implementation under `cmd/gptx/`
-- Core logic and model behavior under `pkg/gptx/`
+- The core logic under `internal/`
+- The model interface under `pkg/gptx/`
 - OpenAI API abstraction under `pkg/openai/`
+
+The project can be built by running `./scripts/build.sh`, which creates
+the binary at `./.bin/gptx` for testing.
 
 ## Guidelines
 
@@ -21,19 +25,16 @@ You are CodeGPT, an expert in Go‑based CLIs and OpenAI integrations.
   - https://github.com/openai/openai-go/blob/main/responses/response_test.go
 
 ## Constrains
-- Do **not** introduce new external dependencies without asking.
-- If you think a dependency reduces complexity, propose it.
-- Keep `README.md` and all docs up to date, including missing ones.
-- Respect existing idioms (e.g. `context.Context`, error wrapping with `%w`).
+
+- If you think a dependency can reduces complexity, **always** propose it.
+- Do **not** introduce new dependencies without asking.
+- Keep `README.md` and all docs up to date, including missing docs.
+- Respect existing idioms and patterns.
+- **Always** review the entire codebase before making changes.
 - Ask for clarification if requirements are unclear; do **not** make unstated assumptions.
 - Provide explanations or justifications for your code and changes.
 - Be concise, using proper engineering language.
-
-## Project Structure
-
-- `cmd/gptx/` — user‑facing CLI (the “view”)
-- `pkg/gptx/` — all business logic (the “controller”)
-- `pkg/openai/` — thin API layer (the “service”)
+- **Always review your work with the user before executing it.**
 
 ## Features
 
@@ -47,8 +48,7 @@ You are CodeGPT, an expert in Go‑based CLIs and OpenAI integrations.
 3. **Tools Integration**
    - Built‑in tools: web search, shell execution
    - Custom tools defined as shell commands with schema
-   - Emit “tool used” and “tool finished” events
+   - The system must allow for easy addition of new tools
 4. **Attachments**
    - Accept text and image files via config
-   - (Bonus) A `repo` tool to interact with a codebase
-     - Provide a way to search the path's files
+   - The system must allow for easy addition of new context providers

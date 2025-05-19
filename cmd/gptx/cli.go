@@ -1,13 +1,9 @@
 package main
 
 import (
-	"context"
 	"os"
 	"strings"
 
-	"github.com/mohdfareed/gptx-cli/internal/cfg"
-	"github.com/mohdfareed/gptx-cli/internal/events"
-	"github.com/mohdfareed/gptx-cli/internal/tools"
 	"golang.org/x/term"
 )
 
@@ -56,26 +52,4 @@ func formatKeyValue(key string, value string) string {
 	return keyName + equal + value
 }
 
-func printModelEvents(mgr events.ModelEvents) {
-	mgr.Start.Subscribe(context.TODO(), func(data cfg.Config) {
-		Debug("Model started. Config: %v", data)
-	})
-	mgr.Reply.Subscribe(context.TODO(), func(data string) {
-		Print(data)
-	})
-	mgr.Reasoning.Subscribe(context.TODO(), func(data string) {
-		Info("Reasoning: %s", data)
-	})
-	mgr.ToolCall.Subscribe(context.TODO(), func(data tools.ToolCall) {
-		Info("Tool call: %s", data)
-	})
-	mgr.ToolResult.Subscribe(context.TODO(), func(data string) {
-		Info("Tool result: %s", data)
-	})
-	mgr.Error.Subscribe(context.TODO(), func(err error) {
-		Error("Model error: %s", err)
-	})
-	mgr.Done.Subscribe(context.TODO(), func(usage string) {
-		Debug("Model done. Usage: %s", usage)
-	})
-}
+// This function has been replaced by setupCallbacks in model.go

@@ -23,10 +23,11 @@ type Config struct {
 	Model     string   // Model name
 	SysPrompt string   // System prompt
 	Files     []string // Attached files
-	WebSearch *bool    // Enable web search
-	Shell     *string  // Shell command
-	Tokens    *int     // Max tokens
-	Temp      *float64 // Temperature (controls randomness)
+	WebSearch bool     // Enable web search
+	Shell     string   // Shell command
+	Reason    bool     // Enable reasoning
+	Tokens    int      // Max tokens
+	Temp      float64  // Temperature (controls randomness)
 }
 
 // MARK: Flags
@@ -48,15 +49,22 @@ func (c *Config) Flags() []cli.Flag {
 			Value:   "o4-mini",
 		},
 		// CONFIG
+		&cli.BoolFlag{
+			Name: "reason", Usage: "Allow the model to reason",
+			Category: "config", Destination: &c.Reason,
+			Sources:     cli.EnvVars(EnvVarPrefix + "REASON"),
+			HideDefault: true,
+		},
+		// CONFIG
 		&cli.IntFlag{
 			Name: "max", Usage: "Limit response length",
-			Category: "config", Destination: c.Tokens,
+			Category: "config", Destination: &c.Tokens,
 			Sources:     cli.EnvVars(EnvVarPrefix + "MAX_TOKENS"),
 			HideDefault: true,
 		},
 		&cli.Float64Flag{
 			Name: "temp", Usage: "Set response randomness (0-100)",
-			Category: "config", Destination: c.Temp,
+			Category: "config", Destination: &c.Temp,
 			Sources: cli.EnvVars(EnvVarPrefix + "TEMP"),
 			Value:   1,
 		},
@@ -64,7 +72,7 @@ func (c *Config) Flags() []cli.Flag {
 		&cli.StringFlag{
 			Name: "prompt", Usage: "Set system prompt",
 			Category: "config", Destination: &c.SysPrompt,
-			Sources: cli.EnvVars(EnvVarPrefix + "SYS_PROMPT"),
+			Sources: cli.EnvVars(EnvVarPrefix + "INSTRUCTIONS"),
 			Value:   fmt.Sprintf(SYS_PROMPT, AppName), Aliases: []string{"s"},
 			TakesFile: true, Action: c.resolveSysPrompt, HideDefault: true,
 		},
@@ -78,12 +86,12 @@ func (c *Config) Flags() []cli.Flag {
 		// TOOLS
 		&cli.BoolFlag{
 			Name: "web", Usage: "Enable web search",
-			Category: "context", Destination: c.WebSearch,
+			Category: "context", Destination: &c.WebSearch,
 			Sources: cli.EnvVars(EnvVarPrefix + "WEB_SEARCH"),
 		},
 		&cli.StringFlag{
 			Name: "shell", Usage: "Set the shell for the model to use",
-			Category: "context", Destination: c.Shell,
+			Category: "context", Destination: &c.Shell,
 			Sources: cli.EnvVars(EnvVarPrefix + "SHELL"),
 		},
 	}

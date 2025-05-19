@@ -20,27 +20,42 @@ const ShellToolDescription = `Execute shell commands.
 Use this for file operations, system information, or any command-line tasks.
 `
 
-// shellTool defines the base shell tool configuration.
-var shellTool = ToolDef{
-	Name: ShellToolDef,
-	Desc: ShellToolDescription,
-	Params: map[string]any{
-		"shell": "auto", // Shell to use
-		"cmd":   "",     // Command to execute
-	},
-	Handler: shellHandler,
-}
-
 // NewShellTool creates a shell tool from the given config.
 func NewShellTool(config cfg.Config) ToolDef {
-	tool := shellTool
-
-	if *config.Shell == "auto" {
-		tool.Params["shell"] = getDefaultShell()
-	} else {
-		tool.Params["shell"] = config.Shell
+	// Determine which shell to use
+	shell := getDefaultShell()
+	if config.Shell != "auto" {
+		shell = config.Shell
 	}
-	return tool
+
+	// Create the tool definition
+	return ToolDef{
+		Name: ShellToolDef,
+		Desc: ShellToolDescription,
+		Params: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"cmd": map[string]any{
+					"type":        "string",
+					"description": "The command to execute",
+				},
+			},
+			"required": []string{"cmd"},
+		},
+		Handler: func(ctx context.Context, params map[string]any) (string, error) {
+			// Extract command from params
+			cmd, ok := params["cmd"].(string)
+			if !ok {
+				return "", fmt.Errorf("shell: missing required parameter 'cmd'")
+			}
+
+			// Execute the command with the configured shell
+			return shellHandler(map[string]any{
+				"shell": shell,
+				"cmd":   cmd,
+			})
+		},
+	}
 }
 
 // shellHandler implements the shell tool functionality.
@@ -53,7 +68,7 @@ func NewShellTool(config cfg.Config) ToolDef {
 // Returns:
 // - The command output as a string
 // - An error if the command fails or the shell is not available
-func shellHandler(ctx context.Context, params map[string]any) (string, error) {
+func shellHandler(params map[string]any) (string, error) {
 	shell := params["shell"].(string)
 	cmd := params["cmd"].(string)
 

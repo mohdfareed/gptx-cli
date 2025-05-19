@@ -67,18 +67,11 @@ func readFile(path string) (FileData, error) {
 }
 
 func dataFile(data []byte, path string) (FileData, error) {
-	// format := "# File: %s\n\n```%s\n%s\n```"
-	// ext := filepath.Ext(path)
-	// text := fmt.Sprintf(format, path, ext, string(data))
-	// file := responses.ResponseInputTextParam{Text: text}
-	// return FileData{OfInputText: &file}, nil
-
-	file := responses.ResponseInputFileParam{
-		FileID:   param.Opt[string]{Value: path},
-		Filename: param.Opt[string]{Value: filepath.Base(path)},
-		FileData: param.Opt[string]{Value: string(data)},
-	} // REVIEW: convert to text message if not a text file
-	return FileData{OfInputFile: &file}, nil
+	format := "# File: %s\n\n```%s\n%s\n```"
+	ext := filepath.Ext(path)
+	text := fmt.Sprintf(format, path, ext, string(data))
+	file := responses.ResponseInputTextParam{Text: text}
+	return FileData{OfInputText: &file}, nil
 }
 
 func imageFile(data []byte, path string) (FileData, error) {
@@ -93,9 +86,15 @@ func imageFile(data []byte, path string) (FileData, error) {
 	b64 := base64.StdEncoding.EncodeToString(data)
 	url := fmt.Sprintf("data:%s;base64,%s", mimeType, b64)
 
+	// Create file ID without extension
+	fileID := filepath.Base(path)
+	if ext := filepath.Ext(fileID); ext != "" {
+		fileID = fileID[:len(fileID)-len(ext)]
+	}
+
 	// create image file
 	image := responses.ResponseInputImageParam{
-		FileID:   param.Opt[string]{Value: path},
+		FileID:   param.Opt[string]{Value: "file_" + fileID},
 		ImageURL: param.Opt[string]{Value: url},
 	}
 	return FileData{OfInputImage: &image}, nil
