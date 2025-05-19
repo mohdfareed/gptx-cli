@@ -56,7 +56,7 @@ func formatKeyValue(key string, value string) string {
 	return keyName + equal + value
 }
 
-func printModelEvent(mgr events.ModelEvents) {
+func printModelEvents(mgr events.ModelEvents) {
 	mgr.Start.Subscribe(context.TODO(), func(data cfg.Config) {
 		Debug("Model started. Config: %v", data)
 	})

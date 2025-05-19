@@ -59,7 +59,7 @@ func readFile(path string) (FileData, error) {
 
 	// Process based on file extension
 	switch filepath.Ext(path) {
-	case ".jpg", ".jpeg", ".png", ".svg":
+	case ".jpg", ".jpeg", ".png", ".svg", ".gif", ".webp":
 		return imageFile(data, path) // Handle image files
 	default:
 		return dataFile(data, path) // Handle text files

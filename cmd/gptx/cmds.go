@@ -48,7 +48,7 @@ func msgCMD(config *cfg.Config) *cli.Command {
 			// 3. Wire up event handling to display progress and results
 			client := openai.NewOpenAIClient(config.APIKey)
 			model := gptx.NewModel(*config).WithClient(client)
-			printModelEvent(*model.Events)
+			printModelEvents(*model.Events)
 			defer println() // Add a newline after completion
 
 			// Send the message to the model and get the response
@@ -61,7 +61,7 @@ func msgCMD(config *cfg.Config) *cli.Command {
 	}
 }
 
-func configCMD(config *cfg.Config) *cli.Command {
+func configCMD() *cli.Command {
 	return &cli.Command{
 		Name: "cfg", Usage: "Show current configuration",
 		Description: CONFIG_DESC,

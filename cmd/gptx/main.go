@@ -22,7 +22,7 @@ func main() {
 
 	cmd.Commands = []*cli.Command{
 		msgCMD(config),
-		configCMD(config),
+		configCMD(),
 		demoCMD(),
 	}
 

@@ -26,9 +26,9 @@ func NewRequest(
 	// Build the complete request with all configuration options
 	data := responses.ResponseNewParams{
 		// Core parameters
-		Model:        model.Config.Model,         // Which model to use (e.g., "o4-mini")
-		Input:        history,                    // Message history
-		Tools:        tools,                      // Available tools
+		Model:        model.Config.Model,                               // Which model to use (e.g., "o4-mini")
+		Input:        history,                                          // Message history
+		Tools:        tools,                                            // Available tools
 		Instructions: param.Opt[string]{Value: model.Config.SysPrompt}, // System prompt
 		User:         param.Opt[string]{Value: userID},                 // User identifier
 
@@ -62,4 +62,16 @@ func NewRequest(
 	// 	}
 	// }
 	return data
+}
+
+// NewTool creates a new tool definition.
+func NewTool(name, desc string, params map[string]any) ToolDef {
+	return responses.ToolUnionParam{
+		OfFunction: &responses.FunctionToolParam{
+			Name:        name,
+			Description: param.Opt[string]{Value: desc},
+			Parameters:  params,
+			Strict:      true,
+		},
+	}
 }

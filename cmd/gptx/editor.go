@@ -90,9 +90,9 @@ func terminalPrompt(config cfg.Config) (string, error) {
 		line := scanner.Text()
 		if line == "" {
 			break
-		}
+		} // exit on empty line (double enter)
 		lines = append(lines, line)
-	} // FIXME: can't exit
+	}
 	prompt := strings.Join(lines, "\n")
 	return prompt, nil
 }
