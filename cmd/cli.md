@@ -11,7 +11,6 @@ DESCRIPTION:
 
    Features:
    - Send messages to LLM models
-   - Include file contents using the @file tag system
    - Configure model parameters
    - Use multiple configuration methods
    - Extend with tools and plugins
@@ -36,12 +35,13 @@ GLOBAL OPTIONS:
    --key string                Set Platform API key [$GPTX_API_KEY]
    --max int                   Limit response length [$GPTX_MAX_TOKENS]
    --model string              Select model to use (default: "o4-mini") [$GPTX_MODEL]
-   --prompt string, -s string  Set system prompt [$GPTX_SYS_PROMPT]
-   --temp float                Set response randomness (0-100) (default: 1) [$GPTX_TEMPERATURE]
+   --prompt string, -s string  Set system prompt [$GPTX_INSTRUCTIONS]
+   --reason                    Allow the model to reason [$GPTX_REASON]
+   --temp float                Set response randomness (0-100) (default: 1) [$GPTX_TEMP]
 
    context
 
    --files string, -f string [ --files string, -f string ]  Attach files to the message [$GPTX_FILES]
-   --shell string                                           Set the shell for the model to use [$GPTX_SHELL_TOOL]
+   --shell string                                           Set the shell for the model to use [$GPTX_SHELL]
    --web                                                    Enable web search (default: false) [$GPTX_WEB_SEARCH]
 

@@ -13,7 +13,6 @@ It allows you to interact with any GPT model directly from the terminal.
 
 - **File Integration**
   - Attach entire files via `--files` flag with glob pattern support
-  - Include specific file sections with the `@file(path:start-end)` tag syntax
   - Support for image attachments (jpg, jpeg, png, svg)
 
 - **Callback System**

@@ -77,7 +77,7 @@ func (m *Model) Tools() []tools.ToolDef {
 }
 
 // Message sends a message to the model and processes the response through callbacks.
-
+// It manages the conversation loop for handling tool calls and errors.
 func (m *Model) Message(ctx context.Context, prompt string) error {
 	if m.client == nil {
 		return fmt.Errorf("no client set, use WithClient option")
@@ -98,7 +98,7 @@ func (m *Model) Message(ctx context.Context, prompt string) error {
 
 		// Handle errors
 		if err != nil {
-			return "", err // Error will be reported by client
+			return "", err
 		}
 
 		// Report tool results through callback
@@ -121,18 +121,38 @@ func (m *Model) Message(ctx context.Context, prompt string) error {
 		},
 	}
 
-	// Send the request to the client
-	request := Request{
-		Config:      m.config,
-		Prompt:      prompt,
-		ToolHandler: toolHandler,
-		Callbacks:   clientCallbacks,
-		ToolDefs:    m.Tools(), // Pass tool definitions to client
+	// Initialize the conversation with the user message
+	messages := []Message{
+		{Role: "user", Content: prompt},
 	}
 
-	// Let the client process the request
-	if err := m.client.Generate(ctx, request); err != nil {
-		return fmt.Errorf("generate: %w", err)
+	// Initialize loop control variables
+	maxIterations := 10
+	hasToolCalls := true
+
+	// Main conversation loop
+	for iteration := 0; hasToolCalls && iteration < maxIterations; iteration++ {
+		// Prepare the request for this iteration
+		request := Request{
+			Config:      m.config,
+			Messages:    messages,
+			ToolHandler: toolHandler,
+			Callbacks:   clientCallbacks,
+			ToolDefs:    m.Tools(),
+		}
+
+		// Send the request to the client and get the response
+		response, err := m.client.SendRequest(ctx, request)
+		if err != nil {
+			return fmt.Errorf("send request: %w", err)
+		}
+
+		// Add new messages from the response to our conversation
+		messages = append(messages, response.Messages...)
+
+		// Continue if there are more tool calls to process
+		hasToolCalls = response.HasToolCalls
 	}
+
 	return nil
 }

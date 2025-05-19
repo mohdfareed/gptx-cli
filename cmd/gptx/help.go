@@ -7,7 +7,6 @@ const (
 
 Features:
 - Send messages to LLM models
-- Include file contents using the @file tag system
 - Configure model parameters
 - Use multiple configuration methods
 - Extend with tools and plugins
@@ -16,15 +15,7 @@ Learn more about a command:
     gptx help <command>`
 
 	// MSG_DESC is the description for the msg command
-	MSG_DESC = `Send a message to an LLM model.
-
-Include file contents with tags:
-    @file(path)            Include entire file
-    @file(path:start-end)  Include specific lines
-
-Examples:
-    gptx msg "What does @file(main.go) do?"
-    gptx msg "Explain @file(config.go:10-30)"`
+	MSG_DESC = `Send a message to an LLM model.`
 
 	// CONFIG_DESC is the description for the config command
 	CONFIG_DESC = `Display the configuration.

@@ -33,7 +33,7 @@ func msgCMD(config *cfg.Config) *cli.Command {
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			// Get the user prompt from command line args, stdin, or editor
-			prompt, err := PromptUser(*config, msg)
+			prompt, err := PromptUser(config.Model, msg)
 			if err != nil {
 				return fmt.Errorf("prompt: %w", err)
 			}

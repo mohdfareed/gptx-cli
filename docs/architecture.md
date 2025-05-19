@@ -27,7 +27,6 @@ graph TD
     %% Attachments
     Core -->|manages| Attachments[Attachments]
     Attachments -->|supports| Files["Text Files"]
-    Attachments -->|uses| Tags["Tagging System\n(for file line ranges)"]
 
     %% Build and Deploy
     Scripts["Build Scripts"] -.->|builds| CLI
@@ -39,7 +38,7 @@ graph TD
 
     class CLI,Core,API primary;
     class Config,Callbacks,Tools,Attachments secondary;
-    class ConfigFiles,EnvVars,CLIFlags,Handlers,BuiltInTools,CustomTools,Files,Tags,Scripts tertiary;
+    class ConfigFiles,EnvVars,CLIFlags,Handlers,BuiltInTools,CustomTools,Files,Scripts tertiary;
 ```
 
 ## Package Structure
@@ -113,7 +112,7 @@ graph LR
 
     class Main,CLI,Core,OpenAI primary;
     class CLI_cmds,CLI_cli,CLI_editor,CLI_help,CLI_logging,CLI_main cmd;
-    class Core_config,Core_env,Core_events,Core_model,Core_tags,Core_tools core;
+    class Core_config,Core_env,Core_events,Core_model,Core_tools core;
     class API_client api;
     class Build_sh,Build_ps1,Release_sh,Release_ps1,Run_sh,Run_ps1 scripts;
 ```

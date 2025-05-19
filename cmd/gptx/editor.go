@@ -31,13 +31,13 @@ var editor string
 // ============================================================================
 
 // PromptUser gets user input from args, editor, or terminal in that order.
-func PromptUser(config cfg.Config, args []string) (string, error) {
+func PromptUser(model string, args []string) (string, error) {
 	if len(args) > 0 { // Message provided as command line arguments
 		return strings.Join(args, " "), nil
 	} else if editor != "" { // Editor specified, open it for composition
 		return editorPrompt(editor)
 	} else if isTerm { // Running in terminal, prompt interactively
-		return terminalPrompt(config)
+		return terminalPrompt(model)
 	}
 	// No input method available
 	return "", nil
@@ -82,8 +82,8 @@ func editorPrompt(editor string) (string, error) {
 // MARK: Terminal
 // ============================================================================
 
-func terminalPrompt(config cfg.Config) (string, error) {
-	modelPrefix(config.Model, "")
+func terminalPrompt(model string) (string, error) {
+	modelPrefix(model, "")
 	scanner := bufio.NewScanner(os.Stdin)
 	var lines []string
 	for scanner.Scan() {
