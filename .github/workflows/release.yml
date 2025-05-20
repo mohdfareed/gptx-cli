@@ -20,7 +20,7 @@ jobs:
       DEBUG: ${{ github.event.inputs.debug }}
 
     steps:
-      - if: env.DEBUG == "true"
+      - if: env.DEBUG == true
         run: echo "::warning::Debug mode is enabled."
 
       # 1) Clone the repository
@@ -41,7 +41,7 @@ jobs:
 
       # 4) Debug: upload build files as artifacts
       - name: Upload build artifacts (dry run)
-        if: env.DEBUG == "true" # for debugging only
+        if: env.DEBUG == true # for debugging only
         uses: actions/upload-artifact@main
         with:
           name: build-artifacts
@@ -49,7 +49,7 @@ jobs:
 
       # 4) Release: create a release with build files
       - name: Create GitHub Release
-        if: env.DEBUG != "true"
+        if: env.DEBUG != true
         uses: softprops/action-gh-release@master
         with:
           tag_name: ${{ github.ref_name }}
